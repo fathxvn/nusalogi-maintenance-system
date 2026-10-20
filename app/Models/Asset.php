@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Asset extends Model
 {
@@ -32,4 +33,15 @@ class Asset extends Model
             'customer_site_id'
         );
     }
+
+    public function workOrders(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            WorkOrder::class,
+            'work_order_assets',
+            'asset_id',
+            'work_order_id'
+        );
+    }
+    
 }

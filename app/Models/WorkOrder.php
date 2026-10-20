@@ -63,4 +63,14 @@ class WorkOrder extends Model
             'customer_site_id'
         );
     }
+
+    public function assets(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Asset::class,
+            'work_order_assets',
+            'work_order_id',
+            'asset_id'
+        );
+    }
 }
