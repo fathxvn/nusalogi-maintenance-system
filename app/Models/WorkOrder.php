@@ -79,4 +79,9 @@ class WorkOrder extends Model
     {
         return $this->hasMany(WorkOrderUpdate::class);
     }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(ServiceReport::class);
+    }
 }
