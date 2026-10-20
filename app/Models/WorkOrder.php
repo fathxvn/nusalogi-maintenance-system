@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkOrder extends Model
 {
@@ -72,5 +73,10 @@ class WorkOrder extends Model
             'work_order_id',
             'asset_id'
         );
+    }
+
+    public function updates(): HasMany
+    {
+        return $this->hasMany(WorkOrderUpdate::class);
     }
 }
