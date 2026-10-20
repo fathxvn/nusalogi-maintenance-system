@@ -25,4 +25,9 @@ class CustomerSite extends Model
     {
         return $this->hasMany(Asset::class);
     }
+
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrders::class);
+    }
 }
