@@ -84,4 +84,9 @@ class WorkOrder extends Model
     {
         return $this->hasMany(ServiceReport::class);
     }
+
+    public function invoices(): HasMany
+{
+    return $this->hasMany(Invoice::class);
+}
 }

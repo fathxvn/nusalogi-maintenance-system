@@ -1,0 +1,11 @@
+[90m= [39m[34;4mApp\Models\Asset[39;24m {#8849
+    [34masset_code[39m: [32m"[39m[32mAST-CCTV-001[39m[32m"[39m,
+    [34mcategory[39m: [32m"[39m[32mCCTV[39m[32m"[39m,
+    [34mbrand[39m: [32m"[39m[32mHikvision[39m[32m"[39m,
+    [34mmodel[39m: [32m"[39m[32mDS-2CD[39m[32m"[39m,
+    [34mstatus[39m: [32m"[39m[32mactive[39m[32m"[39m,
+    [34mcustomer_site_id[39m: [35m1[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-10-20 13:24:16[39m[32m"[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-10-20 13:24:16[39m[32m"[39m,
+    [34mid[39m: [35m1[39m,
+  }

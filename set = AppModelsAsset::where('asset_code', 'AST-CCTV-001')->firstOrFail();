@@ -1,0 +1,17 @@
+[90m= [39m[34;4mApp\Models\WorkOrder[39;24m {#8262
+    [34mid[39m: [35m1[39m,
+    [34mwo_number[39m: [32m"[39m[32mWO-TEST-001[39m[32m"[39m,
+    [34mcustomer_site_id[39m: [35m1[39m,
+    [34mcreated_by[39m: [35m1[39m,
+    [34mverified_by[39m: [36mnull[39m,
+    [34mtitle[39m: [32m"[39m[32mMaintenance CCTV Kantor Bekasi[39m[32m"[39m,
+    [34mdescription[39m: [32m"[39m[32mPemeriksaan CCTV tidak menampilkan gambar.[39m[32m"[39m,
+    [34mservice_type[39m: [32m"[39m[32mmaintenance[39m[32m"[39m,
+    [34mcategory[39m: [32m"[39m[32mcctv[39m[32m"[39m,
+    [34mpriority[39m: [32m"[39m[32mmedium[39m[32m"[39m,
+    [34mstatus[39m: [32m"[39m[32mpending[39m[32m"[39m,
+    [34mscheduled_at[39m: [36mnull[39m,
+    [34mcompleted_at[39m: [36mnull[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-10-20 15:28:32[39m[32m"[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-10-20 15:28:32[39m[32m"[39m,
+  }

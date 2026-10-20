@@ -1,0 +1,10 @@
+[90m= [39m[34;4mApp\Models\CustomerSite[39;24m {#8244
+    [34mid[39m: [35m1[39m,
+    [34mcustomer_id[39m: [35m1[39m,
+    [34msite_name[39m: [32m"[39m[32mKantor Bekasi[39m[32m"[39m,
+    [34maddress[39m: [32m"[39m[32mBekasi, Jawa Barat[39m[32m"[39m,
+    [34mpic_name[39m: [36mnull[39m,
+    [34mpic_phone[39m: [36mnull[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-10-20 12:36:54[39m[32m"[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-10-20 12:36:54[39m[32m"[39m,
+  }
