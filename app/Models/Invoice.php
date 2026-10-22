@@ -56,4 +56,41 @@ class Invoice extends Model
     {
         return $this->hasMany(InvoicePayment::class);
     }
+
+    public function paidAmount(): string
+    {
+        $total = $this->payments()->sum('amount');
+
+        return bcadd('0.00', (string) $total, 2);
+    }
+
+    public function remainingBalance(): string
+    {
+        return bcsub(
+            $this->grand_total,
+            $this->paidAmount(),
+            2
+        );
+    }
+
+    public function paymentStatus(): string
+    {
+        // invoice draft/void tidak memiliki status
+        // pembayaran aktif
+        if ($this->status !== 'issued') {
+            return 'not_applicable';
+        }
+
+        $totalPaid = $this->paidAmount();
+
+        if (bccomp($totalPaid, '0.00', 2) === 0) {
+            return 'unpaid';
+        }
+
+        if (bccomp($totalPaid, $this->grand_total, 2) >= 0) {
+            return 'paid';
+        }
+
+        return 'partial';
+    }
 }
