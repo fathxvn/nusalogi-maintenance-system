@@ -6,12 +6,13 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -29,30 +30,116 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Fortify User Actions
+        |--------------------------------------------------------------------------
+        */
+
         Fortify::createUsersUsing(CreateNewUser::class);
-        Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
-        Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
-        Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-        Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
+
+        Fortify::updateUserProfileInformationUsing(
+            UpdateUserProfileInformation::class
+        );
+
+        Fortify::updateUserPasswordsUsing(
+            UpdateUserPassword::class
+        );
+
+        Fortify::resetUserPasswordsUsing(
+            ResetUserPassword::class
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Login View
+        |--------------------------------------------------------------------------
+        */
+
         Fortify::loginView(function () {
             return view('auth.login');
         });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Custom Authentication
+        |--------------------------------------------------------------------------
+        |
+        | Hanya pengguna aktif dengan password benar yang dapat login.
+        | Akun nonaktif tidak boleh membuat session baru.
+        |
+        */
+
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::query()
+                ->where('email', $request->input('email'))
+                ->first();
+
+            if (! $user) {
+                return null;
+            }
+
+            if (! $user->isActive()) {
+                return null;
+            }
+
+            if (! Hash::check(
+                (string) $request->input('password'),
+                $user->password
+            )) {
+                return null;
+            }
+
+            return $user;
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Login Rate Limiting
+        |--------------------------------------------------------------------------
+        */
+
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $throttleKey = Str::transliterate(
+                Str::lower(
+                    (string) $request->input(Fortify::username())
+                ).'|'.$request->ip()
+            );
 
             return Limit::perMinute(5)->by($throttleKey);
         });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Two-Factor Rate Limiting
+        |--------------------------------------------------------------------------
+        |
+        | 2FA saat ini dinonaktifkan melalui config/fortify.php.
+        | Konfigurasi rate limiter dipertahankan untuk pengembangan.
+        |
+        */
+
         RateLimiter::for('two-factor', function (Request $request) {
-            return Limit::perMinute(5)->by($request->session()->get('login.id'));
+            return Limit::perMinute(5)->by(
+                $request->session()->get('login.id')
+            );
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Passkey Rate Limiting
+        |--------------------------------------------------------------------------
+        |
+        | Passkey belum digunakan pada MVP Nusalogi.
+        |
+        */
 
         RateLimiter::for('passkeys', function (Request $request) {
             $credentialId = $request->input('credential.id');
 
             return Limit::perMinute(10)->by(
-                ($credentialId ?: $request->session()->getId()).'|'.$request->ip()
+                ($credentialId ?: $request->session()->getId())
+                .'|'.$request->ip()
             );
         });
     }

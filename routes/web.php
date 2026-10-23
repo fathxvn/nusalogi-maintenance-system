@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,4 +16,18 @@ Route::middleware('auth')->group(function () {
             return 'Admin authorized';
         })
         ->name('admin.check');
+
+    Route::middleware('role:admin')
+        ->prefix('admin')
+        ->name('admin.')
+        ->group(function () {
+            Route::get('/users', [UserController::class, 'index'])
+                ->name('users.index');
+
+            Route::get('/users/create', [UserController::class, 'create'])
+                ->name('users.create');
+
+            Route::post('/users', [UserController::class, 'store'])
+                ->name('users.store');
+        });
 });

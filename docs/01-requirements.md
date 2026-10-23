@@ -21,17 +21,17 @@ Sistem ini bertujuan untuk mempermudah administrasi Work Order, monitoring peker
 6. Membuat invoice dengan rincian biaya dan output PDF.
 7. Memantau pembayaran dan riwayat transaksi.
 
-## 3. User Roles (Rancangan Awal)
+## 3. User Roles (Scope Internal MVP)
 
-| Role | Tanggung Jawab |
-|---|---|
-| Admin | Mengelola customer, lokasi, perangkat, dan Work Order |
-| Koordinator | Menugaskan teknisi dan memverifikasi hasil pekerjaan |
-| Teknisi | Mengupdate status pekerjaan dan mengisi laporan |
-| Finance | Membuat invoice dan mencatat pembayaran |
-| Manager | Melihat dashboard serta laporan |
+| Role | Nilai Database | Tanggung Jawab |
+|---|---|---|
+| Admin | `admin` | Mengelola akun, customer, lokasi, perangkat, data master, invoice, dan pembayaran |
+| Koordinator | `koordinator` | Mengelola Work Order, menugaskan teknisi, dan memverifikasi hasil pekerjaan |
+| Teknisi | `teknisi` | Melihat assignment sendiri, memperbarui progres, dan mengisi laporan maintenance |
 
-Pembagian hak akses ini perlu dikonfirmasi kembali dengan pihak NIS.
+Tiga role ini merupakan keputusan scope MVP internal yang masih perlu divalidasi dengan pihak NIS, bukan persetujuan resmi stakeholder. Nilai database dan pemeriksaan authorization menggunakan huruf kecil; kapitalisasi hanya untuk label tampilan. Role `finance` dan `manager` tidak digunakan untuk akun baru.
+
+Dokumen ini menjelaskan target kewenangan, bukan pernyataan bahwa authorization seluruh modul bisnis sudah diimplementasikan. Pembagian jobdesk lima anggota tim pengembang tetap berlaku; jumlah role aplikasi tidak mengubah jumlah anggota atau tanggung jawab pengembang.
 
 ## 4. Functional Requirements
 
@@ -58,7 +58,7 @@ Pembagian hak akses ini perlu dikonfirmasi kembali dengan pihak NIS.
 
 1. Admin menerima permintaan pekerjaan dari pelanggan.
 2. Admin mencatat customer, lokasi, jenis pekerjaan, dan keluhan.
-3. Sistem menghasilkan nomor Work Order.
+3. Koordinator membuat Work Order dan sistem menghasilkan nomor Work Order.
 4. Koordinator menentukan teknisi yang bertanggung jawab.
 5. Teknisi menerima penugasan.
 6. Teknisi memperbarui status dan mengisi laporan.
@@ -67,12 +67,12 @@ Pembagian hak akses ini perlu dikonfirmasi kembali dengan pihak NIS.
 
 ### 5.2 Invoice Management
 
-1. Finance memilih Work Order yang telah diverifikasi.
-2. Finance menambahkan rincian jasa dan material.
+1. Admin memilih Work Order yang telah diverifikasi.
+2. Admin menambahkan rincian jasa dan material.
 3. Sistem menghitung total biaya.
-4. Finance memeriksa dan menerbitkan invoice.
+4. Admin memeriksa dan menerbitkan invoice.
 5. Sistem menghasilkan dokumen invoice dalam format PDF.
-6. Finance mencatat pembayaran.
+6. Admin mencatat pembayaran.
 7. Sistem menampilkan status pelunasan invoice.
 
 ## 6. Business Rules (Usulan)

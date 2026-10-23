@@ -48,4 +48,15 @@ class RoleMiddlewareTest extends TestCase
             ->get('/admin/check')
             ->assertForbidden();
     }
+
+    public function test_coordinator_cannot_access_admin_page(): void
+    {
+        $coordinator = User::factory()->create();
+        $coordinator->role = 'koordinator';
+        $coordinator->save();
+
+        $this->actingAs($coordinator)
+            ->get('/admin/check')
+            ->assertForbidden();
+    }
 }
