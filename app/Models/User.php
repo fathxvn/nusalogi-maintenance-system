@@ -31,6 +31,24 @@ class User extends Authenticatable
         ];
     }
 
+    public const ROLES = [
+        'admin',
+        'Koordinator',
+        'teknisi',
+        'finance',
+        'manager',
+    ];
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    public function hasAnyRole(array $roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
     public function assignedWorkOrders(): BelongsToMany
     {
         return $this->belongsToMany(
