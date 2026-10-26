@@ -1,8 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -10,7 +11,7 @@ Route::get('/', function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::view('/dashboard', 'dashboard')
+    Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
 
     Route::get('/migration-test', function (Request $request) {

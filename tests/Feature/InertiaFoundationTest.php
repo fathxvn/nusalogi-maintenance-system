@@ -91,10 +91,10 @@ class InertiaFoundationTest extends TestCase
         ];
     }
 
-    public function test_authenticated_dashboard_still_renders_legacy_blade(): void
+    public function test_authenticated_dashboard_renders_inertia(): void
     {
         $user = User::factory()->create(['is_active' => true]);
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertViewIs('dashboard');
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('dashboard')->etc());
     }
 }

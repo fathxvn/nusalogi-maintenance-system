@@ -22,7 +22,7 @@ type Props = {
 };
 
 export default function AuthenticatedLayout({ title, description, children }: Props) {
-    const { auth, navigation } = usePage<SharedProps>().props;
+    const { auth, navigation, flash } = usePage<SharedProps>().props;
     const [mobileOpen, setMobileOpen] = useState(false);
 
     useEffect(() => {
@@ -103,6 +103,7 @@ export default function AuthenticatedLayout({ title, description, children }: Pr
                         <h1 className="text-2xl leading-tight font-semibold tracking-[-0.025em] sm:text-[28px]">{title}</h1>
                         {description && <p className="text-[15px] leading-6 text-muted-foreground">{description}</p>}
                     </div>
+                    {flash.success && <p role="status" className="rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{flash.success}</p>}
                     {children}
                 </main>
             </div>

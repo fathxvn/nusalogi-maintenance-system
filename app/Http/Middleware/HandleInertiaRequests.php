@@ -2,9 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -16,6 +19,19 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        if ($request->isMethod('GET') && $request->header('X-Inertia') && $request->routeIs('login', 'password.request', 'password.reset')) {
+            $response = Inertia::location($request->fullUrl());
+            $response->headers->set('Cache-Control', 'no-store, private');
+            $response->headers->set('Referrer-Policy', 'no-referrer');
+
+            return $response;
+        }
+
+        return parent::handle($request, $next);
+    }
 
     /**
      * Determines the current asset version.
@@ -42,6 +58,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => fn (): ?array => $request->user()?->only(['id', 'name', 'role']),
             ],
             'navigation' => fn (): array => $this->navigation($request),
+            'flash' => ['success' => fn (): ?string => $request->session()->get('success')],
         ];
     }
 
@@ -80,7 +97,7 @@ class HandleInertiaRequests extends Middleware
                 'label' => $item['label'],
                 'href' => $hasRoute ? route($routeName) : null,
                 'active' => $hasRoute && $request->routeIs($routePattern),
-                'inertia' => $routeName === 'migration.test',
+                'inertia' => in_array($routeName, ['dashboard', 'admin.users.index', 'migration.test'], true),
             ];
         }, $items);
     }

@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
@@ -93,13 +94,7 @@ class CreateUserTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/users/create')
             ->assertOk()
-            ->assertViewHas('roles', ['admin', 'koordinator', 'teknisi'])
-            ->assertSee('value="admin"', false)
-            ->assertSee('value="koordinator"', false)
-            ->assertSee('value="teknisi"', false)
-            ->assertDontSee('value="finance"', false)
-            ->assertDontSee('value="manager"', false)
-            ->assertDontSee('value="Koordinator"', false);
+            ->assertInertia(fn (Assert $page) => $page->component('admin/users/create')->where('roles', ['admin', 'koordinator', 'teknisi'])->etc());
     }
 
     #[TestWith(['teknisi'])]

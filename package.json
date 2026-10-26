@@ -5,7 +5,8 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test:frontend": "node --test tests/Frontend/*.test.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

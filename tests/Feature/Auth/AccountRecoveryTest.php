@@ -8,6 +8,7 @@ use DOMXPath;
 use Illuminate\Auth\Events\PasswordReset as PasswordResetEvent;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -287,6 +288,44 @@ class AccountRecoveryTest extends TestCase
     {
         $this->get('/register')->assertNotFound();
         $this->post('/register', [])->assertNotFound();
+    }
+
+    public function test_login_supports_remember_me_with_the_existing_session_guard(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+            'remember' => '1',
+        ])->assertRedirect(route('dashboard'))->assertCookie(Auth::guard('web')->getRecallerName());
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNotEmpty($user->fresh()->remember_token);
+    }
+
+    public function test_inertia_guest_navigation_to_dashboard_loads_the_blade_login_document(): void
+    {
+        $this->followingRedirects()->withHeader('X-Inertia', 'true')->get(route('dashboard'))
+            ->assertStatus(409)->assertHeader('X-Inertia-Location', route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_inertia_recovery_navigation_does_not_serialize_the_reset_token(): void
+    {
+        $url = route('password.reset', ['token' => 'test-placeholder', 'email' => 'test@example.test']);
+        $response = $this->withHeader('X-Inertia', 'true')->get($url)
+            ->assertStatus(409)->assertHeader('X-Inertia-Location', $url)
+            ->assertHeader('Cache-Control', 'no-store, private')->assertHeader('Referrer-Policy', 'no-referrer');
+        $this->assertSame('', $response->getContent());
+    }
+
+    public function test_inactive_inertia_session_returns_to_the_native_login_document(): void
+    {
+        $user = User::factory()->create(['is_active' => false]);
+        $this->actingAs($user)->followingRedirects()->withHeader('X-Inertia', 'true')->get(route('dashboard'))
+            ->assertStatus(409)->assertHeader('X-Inertia-Location', route('login'));
+        $this->assertGuest();
     }
 
     private function requestResetToken(User $user): string

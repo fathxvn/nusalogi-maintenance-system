@@ -39,19 +39,19 @@ class AuthenticatedLayoutTest extends TestCase
         ];
     }
 
-    public function test_admin_navigation_points_to_existing_blade_pages(): void
+    public function test_admin_navigation_points_to_migrated_inertia_pages(): void
     {
         $user = User::factory()->create(['role' => 'admin', 'is_active' => true]);
         $response = $this->actingAs($user)->get(route('migration.test'))->assertOk();
         $items = collect($response->inertiaProps('navigation'))->keyBy('id');
 
         $this->assertSame(route('dashboard'), $items['dashboard']['href']);
-        $this->assertFalse($items['dashboard']['inertia']);
+        $this->assertTrue($items['dashboard']['inertia']);
         $this->assertSame(route('admin.users.index'), $items['users']['href']);
-        $this->assertFalse($items['users']['inertia']);
+        $this->assertTrue($items['users']['inertia']);
 
-        $this->get($items['dashboard']['href'])->assertOk()->assertViewIs('dashboard');
-        $this->get($items['users']['href'])->assertOk()->assertViewIs('admin.users.index');
+        $this->get($items['dashboard']['href'])->assertOk()->assertInertia(fn (Assert $page) => $page->component('dashboard')->etc());
+        $this->get($items['users']['href'])->assertOk()->assertInertia(fn (Assert $page) => $page->component('admin/users/index')->etc());
     }
 
     #[DataProvider('nonAdminRoles')]

@@ -129,7 +129,8 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
-.inertia-app {
+.inertia-app,
+.auth-page {
     --background: #ffffff;
     --foreground: #1e292c;
     --card: #ffffff;
@@ -145,7 +146,7 @@
     --muted-foreground: #627074;
     --accent: #e5eeea;
     --accent-foreground: #225e56;
-    --border: #dce2df;
+    --border: #e5e7eb;
     --input: #84928e;
     --ring: #28796e;
     --radius: 0.5rem;
@@ -160,7 +161,9 @@
 }
 
 .dark .inertia-app,
-.inertia-app.dark {
+.inertia-app.dark,
+.dark .auth-page,
+.auth-page.dark {
     --background: #151c1e;
     --foreground: #e1e8e5;
     --card: #1a2425;
@@ -191,16 +194,65 @@
 
 @layer base {
     .inertia-app,
-    .inertia-app * {
+    .inertia-app *,
+    .auth-page,
+    .auth-page * {
         @apply border-border outline-ring/50;
     }
 
-    .inertia-app {
+    .inertia-app,
+    .auth-page {
         --font-sans: var(--font-react);
 
         font-size: 0.9375rem;
         line-height: 1.6;
 
         @apply bg-background text-foreground font-sans antialiased;
+    }
+}
+
+@layer components {
+    :is(.inertia-app, .auth-page) .field-control {
+        @apply h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive;
+    }
+
+    .auth-page .auth-submit {
+        @apply flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground outline-none hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60;
+    }
+
+    .inertia-app .panel {
+        @apply rounded-lg border border-border bg-card p-5 sm:p-6;
+    }
+
+    .inertia-app .section-title {
+        @apply text-base font-semibold tracking-tight;
+    }
+
+    .inertia-app .table-shell {
+        @apply overflow-x-auto rounded-lg border border-border;
+    }
+
+    .inertia-app .soft-table {
+        @apply w-full min-w-[44rem] text-left text-sm;
+    }
+
+    .inertia-app .soft-table th {
+        @apply bg-muted/60 px-4 py-3 text-xs font-medium text-muted-foreground;
+    }
+
+    .inertia-app .soft-table td {
+        @apply px-4 py-3 align-middle;
+    }
+
+    .inertia-app .soft-table tbody tr {
+        @apply border-t border-border transition-colors hover:bg-muted/30;
+    }
+
+    .inertia-app .status-badge {
+        @apply inline-flex whitespace-nowrap rounded-sm px-2 py-1 text-xs font-medium;
+    }
+
+    .inertia-app .empty-state {
+        @apply px-4 py-12 text-center text-sm text-muted-foreground;
     }
 }
