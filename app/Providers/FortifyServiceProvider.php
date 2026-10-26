@@ -6,6 +6,9 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Http\Middleware\SecureAccountRecovery;
+use App\Http\Responses\FailedPasswordResetResponse;
+use App\Http\Responses\PasswordResetLinkResponse;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -13,6 +16,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\FailedPasswordResetResponse as FailedPasswordResetResponseContract;
+use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -22,7 +28,9 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);
+        $this->app->bind(FailedPasswordResetResponseContract::class, FailedPasswordResetResponse::class);
     }
 
     /**
@@ -30,6 +38,22 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('account-recovery', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        $this->app->booted(function (): void {
+            foreach ($this->app['router']->getRoutes() as $route) {
+                if ($route->named('password.request', 'password.email', 'password.reset', 'password.update')) {
+                    if (in_array('POST', $route->methods(), true)) {
+                        $route->middleware('throttle:account-recovery');
+                    }
+
+                    $route->middleware(SecureAccountRecovery::class);
+                }
+            }
+        });
+
         /*
         |--------------------------------------------------------------------------
         | Fortify User Actions
@@ -58,6 +82,16 @@ class FortifyServiceProvider extends ServiceProvider
 
         Fortify::loginView(function () {
             return view('auth.login');
+        });
+
+        Fortify::requestPasswordResetLinkView(function () {
+            return view('auth.forgot-password');
+        });
+
+        Fortify::resetPasswordView(function (Request $request) {
+            return view('auth.reset-password', [
+                'request' => $request,
+            ]);
         });
 
         /*

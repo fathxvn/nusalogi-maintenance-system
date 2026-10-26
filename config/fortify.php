@@ -166,7 +166,7 @@ return [
         // akun internal akan dikelola admin pada B03
 
         // Features::registration(),
-        // Features::resetPasswords(),
+        Features::resetPasswords(),
         // Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
