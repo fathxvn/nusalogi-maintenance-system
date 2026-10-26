@@ -28,15 +28,14 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
     public const ROLES = [
         'admin',
-        'Koordinator',
+        'koordinator',
         'teknisi',
-        'finance',
-        'manager',
     ];
 
     public function hasRole(string $role): bool
@@ -47,6 +46,11 @@ class User extends Authenticatable
     public function hasAnyRole(array $roles): bool
     {
         return in_array($this->role, $roles, true);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->is_active === true;
     }
 
     public function assignedWorkOrders(): BelongsToMany

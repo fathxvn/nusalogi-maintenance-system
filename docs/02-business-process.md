@@ -4,12 +4,14 @@
 **Version:** 0.1 — Draft  
 **Status:** Menunggu validasi NIS
 
+Proses berikut mengikuti scope internal MVP dengan tiga role: Admin (`admin`), Koordinator (`koordinator`), dan Teknisi (`teknisi`). Pembagian kewenangan masih perlu validasi stakeholder dan tidak menyatakan bahwa seluruh authorization bisnis sudah tersedia. Pembagian jobdesk lima anggota tim pengembang tetap berlaku.
+
 ## 1. Work Order Management
 
 ### 1.1 Alur Utama
 
 1. Admin menerima permintaan instalasi atau maintenance dari customer.
-2. Admin membuat Work Order berdasarkan kebutuhan customer.
+2. Koordinator membuat Work Order berdasarkan kebutuhan customer yang dicatat Admin.
 3. Koordinator menentukan teknisi dan jadwal pekerjaan.
 4. Teknisi memulai pekerjaan.
 5. Teknisi mencatat hasil pekerjaan dan mengunggah dokumentasi.
@@ -72,12 +74,12 @@
 
 ## 3. Invoice Management
 
-1. Finance memilih Work Order yang sudah diverifikasi.
-2. Finance menambahkan item jasa, material, dan biaya lain.
+1. Admin memilih Work Order yang sudah diverifikasi.
+2. Admin menambahkan item jasa, material, dan biaya lain.
 3. Sistem menghitung subtotal, diskon, pajak yang berlaku, serta total.
-4. Finance memeriksa dan menerbitkan invoice.
+4. Admin memeriksa dan menerbitkan invoice.
 5. Sistem menghasilkan invoice PDF.
-6. Finance mencatat pembayaran customer.
+6. Admin mencatat pembayaran customer.
 7. Sistem menghitung sisa tagihan berdasarkan pembayaran terverifikasi.
 
 ### 3.1 Status Dokumen Invoice

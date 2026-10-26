@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -10,7 +9,7 @@
 
 <body class="min-h-screen bg-slate-100 flex items-center justify-center p-4">
 
-    <div class="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
+    <main class="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
 
         <h1 class="text-2xl font-bold text-slate-900">
             Nusalogi Maintenance
@@ -26,7 +25,7 @@
             </p>
         @endif
 
-        <form action="{{ route('login') }}" method="POST" class="mt-6 space-y-4">
+        <form action="{{ route('login.store') }}" method="POST" class="mt-6 space-y-4">
             @csrf
 
             <div>
@@ -75,8 +74,14 @@
             >
                 Login
             </button>
+
         </form>
-    </div>
+
+        <a href="{{ route('password.request') }}"
+           class="mt-4 block text-center text-sm text-blue-700 hover:underline">
+            Lupa Password
+        </a>
+    </main>
 
 </body>
 </html>

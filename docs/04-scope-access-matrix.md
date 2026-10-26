@@ -27,11 +27,13 @@ Dokumen ini menjadi referensi awal untuk task A02 (validasi kebutuhan NIS), A03 
 
 ## 3. User Roles
 
-- **Admin:** Mengelola data master, membuat Work Order, serta mengelola akun internal.
-- **Koordinator:** Mengatur penugasan teknisi dan memverifikasi hasil pekerjaan.
-- **Teknisi:** Melaksanakan pekerjaan yang ditugaskan, memperbarui status dan membuat laporan.
-- **Finance:** Mengelola invoice serta mencatat pembayaran yang telah diverifikasi.
-- **Manager:** Memantau operasional dan laporan sesuai kewenangan.
+- **Admin (`admin`):** Mengelola akun internal, customer, data master, invoice, dan pembayaran.
+- **Koordinator (`koordinator`):** Mengelola Work Order, mengatur penugasan teknisi, dan memverifikasi hasil pekerjaan.
+- **Teknisi (`teknisi`):** Melihat assignment sendiri, melaksanakan pekerjaan yang ditugaskan, memperbarui progres, dan membuat laporan maintenance.
+
+Daftar ini adalah keputusan scope internal MVP yang masih perlu divalidasi stakeholder. Nilai role disimpan dan diperiksa dalam huruf kecil; kapitalisasi hanya untuk label tampilan. Role `finance` dan `manager` tidak tersedia untuk akun baru. Data role lama tidak otomatis dihapus, dinormalisasi, atau dipromosikan menjadi Admin; perubahan data memerlukan persetujuan terpisah.
+
+Pembagian jobdesk lima anggota tim pengembang tetap berlaku. Tiga role pengguna aplikasi tidak mengubah jumlah anggota maupun tanggung jawab pengembang.
 
 Customer tidak memiliki akun login pada rancangan MVP ini. Pembuatan portal customer membutuhkan persetujuan scope tersendiri.
 
@@ -45,25 +47,25 @@ Keterangan:
 - **—:** tidak diberikan akses.
 - **Usulan:** kewenangan masih perlu konfirmasi NIS.
 
-| Fitur | Admin | Koordinator | Teknisi | Finance | Manager |
-|---|---|---|---|---|---|
-| Login / Logout | Ya | Ya | Ya | Ya | Ya |
-| Pengelolaan akun internal | Kelola | — | — | — | — |
-| Customer & Site | Kelola | Lihat | Lihat terkait | Lihat | Lihat |
-| Asset | Kelola | Lihat | Lihat terkait | Lihat | Lihat |
-| Membuat Work Order | Ya | Usulan | — | — | — |
-| Menugaskan teknisi | — | Ya | — | — | — |
-| Melihat Work Order | Ya | Ya | Tugas sendiri | Lihat | Lihat |
-| Memperbarui progres WO | — | Sesuai kewenangan | Tugas sendiri | — | — |
-| Verifikasi laporan teknisi | — | Ya | — | — | — |
-| Membuat laporan teknisi | — | — | Tugas sendiri | — | — |
-| Upload foto pekerjaan | — | — | Tugas sendiri | — | — |
-| Membuat dan menerbitkan invoice | — | — | — | Ya | — |
-| Melihat invoice | Usulan | Usulan | — | Ya | Ya |
-| Mencatat pembayaran terverifikasi | — | — | — | Ya | — |
-| Dashboard monitoring | Sesuai akses | Operasional | Tugas sendiri | Keuangan | Ringkasan |
+| Fitur | Admin | Koordinator | Teknisi |
+|---|---|---|---|
+| Login / Logout | Ya | Ya | Ya |
+| Pengelolaan akun internal | Kelola | — | — |
+| Customer & Site | Kelola | Lihat | Lihat terkait |
+| Asset | Kelola | Lihat | Lihat terkait |
+| Membuat Work Order | — | Ya | — |
+| Menugaskan teknisi | — | Ya | — |
+| Melihat Work Order | Ya | Ya | Tugas sendiri |
+| Memperbarui progres WO | — | Sesuai kewenangan | Tugas sendiri |
+| Verifikasi laporan teknisi | — | Ya | — |
+| Membuat laporan teknisi | — | — | Tugas sendiri |
+| Upload foto pekerjaan | — | — | Tugas sendiri |
+| Membuat dan menerbitkan invoice | Ya | — | — |
+| Melihat invoice | Ya | Usulan | — |
+| Mencatat pembayaran terverifikasi | Ya | — | — |
+| Dashboard monitoring | Sesuai akses | Operasional | Tugas sendiri |
 
-Matriks ini merupakan rancangan awal, bukan aturan resmi yang sudah disetujui NIS.
+Matriks ini merupakan target kewenangan scope internal MVP, bukan aturan resmi yang sudah disetujui NIS dan bukan bukti bahwa authorization seluruh modul bisnis telah diimplementasikan.
 
 ## 5. Business Rules Utama
 
