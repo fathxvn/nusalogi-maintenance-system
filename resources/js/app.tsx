@@ -1,3 +1,5 @@
-import { createInertiaApp } from "@inertiajs/react";
+import { createInertiaApp } from '@inertiajs/react';
 
-createInertiaApp();
+createInertiaApp({
+    pages: './pages',
+});

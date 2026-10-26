@@ -1,8 +1,7 @@
+import type { UserSummary } from '@/types';
+
 type Props = {
-    user: {
-        id: number;
-        name: string;
-    };
+    user: UserSummary;
 };
 
 export default function MigrationTest({ user }: Props) {
