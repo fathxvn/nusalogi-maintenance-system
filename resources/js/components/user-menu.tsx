@@ -1,4 +1,4 @@
-import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react';
+import { ChevronDown, LogOut } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,26 +20,38 @@ const roleLabels: Record<UserRole, string> = {
 
 export function UserMenu({ user }: { user: AuthenticatedUser }) {
     const roleLabel = user.role ? roleLabels[user.role] : 'Pengguna internal';
+    const initials = user.name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toLocaleUpperCase() || 'N';
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" className="h-11 gap-2 px-2" />} aria-label={`Menu pengguna ${user.name}`}>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-muted">
-                    <UserRound className="size-4" aria-hidden="true" />
+            <DropdownMenuTrigger
+                render={<Button variant="ghost" className="h-11 gap-2.5 rounded-md px-1.5" />}
+                aria-label={`Menu pengguna ${user.name}`}
+            >
+                <span
+                    aria-hidden="true"
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-medium text-secondary-foreground"
+                >
+                    {initials}
                 </span>
-                <span className="hidden max-w-40 truncate text-sm sm:block">{user.name}</span>
-                <ChevronsUpDown className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                <span className="hidden max-w-40 truncate text-[13px] font-medium sm:block">{user.name}</span>
+                <ChevronDown className="size-3 text-muted-foreground" strokeWidth={1.7} aria-hidden="true" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-60 rounded-lg shadow-sm ring-border">
                 <DropdownMenuGroup>
-                    <DropdownMenuLabel className="flex flex-col gap-1 py-2">
+                    <DropdownMenuLabel className="flex flex-col gap-1 px-2 py-2.5">
                         <span className="truncate text-sm font-medium text-foreground">{user.name}</span>
                         <span className="text-xs font-normal">{roleLabel}</span>
                     </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem nativeButton render={<button type="submit" form="nusalogi-logout-form" />} variant="destructive" className="min-h-11">
-                    <LogOut aria-hidden="true" />
+                <DropdownMenuItem
+                    nativeButton
+                    render={<button type="submit" form="nusalogi-logout-form" />}
+                    variant="destructive"
+                    className="min-h-11 rounded-md px-2"
+                >
+                    <LogOut strokeWidth={1.7} aria-hidden="true" />
                     Keluar
                 </DropdownMenuItem>
             </DropdownMenuContent>

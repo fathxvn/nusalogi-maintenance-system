@@ -1,7 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import '@fontsource-variable/geist';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,7 +13,7 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-react: 'Geist Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-react: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
@@ -42,6 +44,7 @@
     --color-secondary: var(--secondary);
     --color-primary-foreground: var(--primary-foreground);
     --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
     --color-popover-foreground: var(--popover-foreground);
     --color-popover: var(--popover);
     --color-card-foreground: var(--card-foreground);
@@ -126,6 +129,66 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
+.inertia-app {
+    --background: #ffffff;
+    --foreground: #1e292c;
+    --card: #ffffff;
+    --card-foreground: #1e292c;
+    --popover: #ffffff;
+    --popover-foreground: #1e292c;
+    --primary: #28796e;
+    --primary-hover: #21665d;
+    --primary-foreground: #ffffff;
+    --secondary: #e9eeec;
+    --secondary-foreground: #354643;
+    --muted: #edf1ef;
+    --muted-foreground: #627074;
+    --accent: #e5eeea;
+    --accent-foreground: #225e56;
+    --border: #dce2df;
+    --input: #84928e;
+    --ring: #28796e;
+    --radius: 0.5rem;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #465452;
+    --sidebar-primary: #28796e;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f3f4f5;
+    --sidebar-accent-foreground: #354643;
+    --sidebar-border: #e5e7eb;
+    --sidebar-ring: #28796e;
+}
+
+.dark .inertia-app,
+.inertia-app.dark {
+    --background: #151c1e;
+    --foreground: #e1e8e5;
+    --card: #1a2425;
+    --card-foreground: #e1e8e5;
+    --popover: #1a2425;
+    --popover-foreground: #e1e8e5;
+    --primary: #8bbeb0;
+    --primary-hover: #a9d0c4;
+    --primary-foreground: #132c26;
+    --secondary: #263532;
+    --secondary-foreground: #d5e1db;
+    --muted: #202b2c;
+    --muted-foreground: #a1b0ab;
+    --accent: #293e38;
+    --accent-foreground: #b6d9cc;
+    --border: #33443f;
+    --input: #758880;
+    --ring: #8bbeb0;
+    --sidebar: #11191a;
+    --sidebar-foreground: #c4d3cc;
+    --sidebar-primary: #8bbeb0;
+    --sidebar-primary-foreground: #132c26;
+    --sidebar-accent: #23382f;
+    --sidebar-accent-foreground: #b6d9cc;
+    --sidebar-border: #33443f;
+    --sidebar-ring: #8bbeb0;
+}
+
 @layer base {
     .inertia-app,
     .inertia-app * {
@@ -135,6 +198,9 @@
     .inertia-app {
         --font-sans: var(--font-react);
 
-        @apply bg-background text-foreground font-sans;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+
+        @apply bg-background text-foreground font-sans antialiased;
     }
 }

@@ -43,45 +43,66 @@ export default function AuthenticatedLayout({ title, description, children }: Pr
     }
 
     return (
-        <div className="min-h-dvh bg-muted/30">
+        <div className="min-h-dvh bg-background">
             <Head title={`${title} - Nusalogi`} />
-            <a href="#main-content" className="sr-only z-100 rounded-lg bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+            <a
+                href="#main-content"
+                className="sr-only z-100 rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+            >
                 Lewati ke konten utama
             </a>
 
-            <aside aria-label="Sidebar" className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-sidebar lg:flex">
-                <div className="border-b p-5">
+            <aside aria-label="Sidebar" className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+                <div className="px-6 pt-7 pb-8">
                     <AppBrand />
                 </div>
                 <AppSidebar items={navigation} />
-                <div className="border-t px-6 py-4 text-xs text-muted-foreground">
+                <div className="px-6 pt-4 pb-6 text-xs leading-5 text-muted-foreground">
                     Sistem operasional internal
                 </div>
             </aside>
 
             <div className="min-w-0 lg:pl-64">
-                <header className="sticky top-0 z-30 flex min-h-18 items-center gap-3 border-b bg-background px-4 sm:px-6 lg:px-8">
-                    <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-                        <SheetTrigger render={<Button variant="outline" size="icon" className="size-11 shrink-0 lg:hidden" />} aria-label="Buka navigasi">
-                            <Menu aria-hidden="true" />
-                        </SheetTrigger>
-                        <SheetContent side="left" className="gap-0 p-0 data-[side=left]:w-[min(20rem,90vw)]">
-                            <SheetHeader className="border-b p-5 text-left">
-                                <SheetTitle>Nusalogi</SheetTitle>
-                                <SheetDescription>Maintenance System</SheetDescription>
-                            </SheetHeader>
-                            <AppSidebar items={navigation} onNavigate={() => setMobileOpen(false)} />
-                        </SheetContent>
-                    </Sheet>
-                    <div className="min-w-0 flex-1 py-3">
-                        <p className="text-xs text-muted-foreground">Ruang kerja</p>
-                        <h1 className="truncate text-base font-semibold sm:text-lg">{title}</h1>
+                <header className="sticky top-0 z-30 bg-background">
+                    <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-5 sm:px-8 lg:px-10">
+                        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                            <SheetTrigger
+                                render={<Button variant="ghost" size="icon" className="-ml-2 size-11 shrink-0 lg:hidden" />}
+                                aria-label="Buka navigasi"
+                            >
+                                <Menu aria-hidden="true" />
+                            </SheetTrigger>
+                            <SheetContent
+                                side="left"
+                                className="gap-0 border-0 bg-sidebar p-0 shadow-none data-[side=left]:w-[min(20rem,90vw)] data-[side=left]:border-0"
+                            >
+                                <SheetHeader className="px-6 pt-7 pb-8 text-left">
+                                    <SheetTitle className="text-xl font-semibold tracking-[-0.04em]">Nusalogi</SheetTitle>
+                                    <SheetDescription className="text-xs tracking-[0.02em]">Maintenance System</SheetDescription>
+                                </SheetHeader>
+                                <AppSidebar items={navigation} onNavigate={() => setMobileOpen(false)} />
+                            </SheetContent>
+                        </Sheet>
+                        <nav aria-label="Jejak navigasi" className="min-w-0 flex-1 text-[13px]">
+                            <ol className="flex items-center gap-2.5">
+                                <li className="hidden shrink-0 text-muted-foreground sm:block">Ruang kerja</li>
+                                <li aria-hidden="true" className="hidden text-muted-foreground sm:block">/</li>
+                                <li aria-current="page" className="truncate text-foreground">{title}</li>
+                            </ol>
+                        </nav>
+                        <UserMenu user={auth.user} />
                     </div>
-                    <UserMenu user={auth.user} />
                 </header>
 
-                <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 outline-none sm:p-6 lg:p-8">
-                    {description && <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>}
+                <main
+                    id="main-content"
+                    tabIndex={-1}
+                    className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 pt-6 pb-10 outline-none sm:px-8 sm:pt-8 lg:px-10"
+                >
+                    <div className="flex max-w-3xl flex-col gap-2">
+                        <h1 className="text-2xl leading-tight font-semibold tracking-[-0.025em] sm:text-[28px]">{title}</h1>
+                        {description && <p className="text-[15px] leading-6 text-muted-foreground">{description}</p>}
+                    </div>
                     {children}
                 </main>
             </div>
