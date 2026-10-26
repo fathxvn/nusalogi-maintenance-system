@@ -43,5 +43,4 @@ class Asset extends Model
             'work_order_id'
         );
     }
-    
 }

@@ -25,7 +25,7 @@ class InvoicePaymentService
         string $paymentMethod,
         ?string $referenceNumber = null
     ): InvoicePayment {
-        return db::transaction(function () use (
+        return DB::transaction(function () use (
             $invoiceId,
             $actor,
             $amount,
@@ -33,8 +33,8 @@ class InvoicePaymentService
             $referenceNumber
         ) {
             $invoice = Invoice::query()
-            ->lockForUpdate()
-            ->findOrFail($invoiceId);
+                ->lockForUpdate()
+                ->findOrFail($invoiceId);
 
             // Invoice harus sudah diterbitkan.
             if ($invoice->status !== 'issued') {
@@ -45,7 +45,7 @@ class InvoicePaymentService
 
             // gunakan string decimal, bukan float
             if (
-                !preg_match('/^\d+(?:\.\d{1,2})?$/D', $amount) ||
+                ! preg_match('/^\d+(?:\.\d{1,2})?$/D', $amount) ||
                 bccomp($amount, '0', 2) <= 0
             ) {
                 throw ValidationException::withMessages([
@@ -53,7 +53,7 @@ class InvoicePaymentService
                 ]);
             }
 
-            if (!in_array($paymentMethod, ['cash', 'transfer'], true)) {
+            if (! in_array($paymentMethod, ['cash', 'transfer'], true)) {
                 throw ValidationException::withMessages([
                     'payment_method' => 'Metode pembayaran tidak valid.',
                 ]);

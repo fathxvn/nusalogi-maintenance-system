@@ -4,36 +4,61 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class UserController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): Response
     {
-        $users = User::query()
-            ->select([
-                'id',
-                'name',
-                'email',
-                'role',
-                'is_active',
-                'created_at',
-            ])
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'role' => ['nullable', Rule::in(User::ROLES)],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+        ]);
+        $filters = [
+            'search' => trim($validated['search'] ?? ''),
+            'role' => $validated['role'] ?? '',
+            'status' => $validated['status'] ?? '',
+        ];
+        $users = User::query()->select(['id', 'name', 'email', 'role', 'is_active', 'created_at'])
+            ->when($filters['search'] !== '', function (Builder $query) use ($filters): void {
+                $query->where(function (Builder $query) use ($filters): void {
+                    $query->where('name', 'like', '%'.$filters['search'].'%')
+                        ->orWhere('email', 'like', '%'.$filters['search'].'%');
+                });
+            })
+            ->when($filters['role'] !== '', fn (Builder $query) => $query->where('role', $filters['role']))
+            ->when($filters['status'] !== '', fn (Builder $query) => $query->where('is_active', $filters['status'] === 'active'))
+            ->latest('id')->paginate(10)->withQueryString()
+            ->through(fn (User $user): array => [
+                ...$user->only(['id', 'name', 'email', 'role', 'is_active']),
+                'created_at' => $user->created_at?->toDateString(),
+                'links' => [
+                    'edit' => route('admin.users.edit', $user),
+                    'status' => route('admin.users.update-status', $user),
+                ],
+                'is_self' => $request->user()->is($user),
+            ]);
 
-            ->latest('id')
-            ->paginate(10);
-
-        return view('admin.users.index', compact('users'));
+        return Inertia::render('admin/users/index', [
+            'users' => $users,
+            'roles' => User::ROLES,
+            'filters' => $filters,
+            'links' => ['index' => route('admin.users.index'), 'create' => route('admin.users.create')],
+        ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('admin.users.create', [
+        return Inertia::render('admin/users/create', [
             'roles' => User::ROLES,
+            'links' => ['index' => route('admin.users.index'), 'store' => route('admin.users.store')],
         ]);
     }
 
@@ -73,10 +98,11 @@ class UserController extends Controller
             ->with('success', 'Akun pengguna berhasil dibuat');
     }
 
-    public function edit(User $user): View
+    public function edit(User $user): Response
     {
-        return view('admin.users.edit', [
-            'user' => $user,
+        return Inertia::render('admin/users/edit', [
+            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active']),
+            'links' => ['index' => route('admin.users.index'), 'update' => route('admin.users.update-role', $user)],
             'roles' => User::ROLES,
         ]);
     }

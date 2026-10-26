@@ -1,15 +1,27 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\DashboardController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
 Route::middleware('auth')->group(function () {
-    Route::view('/dashboard', 'dashboard')
+    Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
+
+    Route::get('/migration-test', function (Request $request) {
+        return Inertia::render('migration-test', [
+            'user' => [
+                'id' => $request->user()->id,
+                'name' => $request->user()->name,
+            ],
+        ]);
+    })->name('migration.test');
 
     Route::middleware('role:admin')
         ->get('/admin/check', function () {

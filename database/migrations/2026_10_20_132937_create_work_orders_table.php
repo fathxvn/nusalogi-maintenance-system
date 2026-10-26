@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('work_orders', function (Blueprint $table) {
             $table->id();
-            
+
             $table->string('wo_number', 50)->unique();
 
             $table->foreignId('customer_site_id')
@@ -46,7 +46,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->index(['status', 'scheduled_at']); 
+            $table->index(['status', 'scheduled_at']);
         });
     }
 

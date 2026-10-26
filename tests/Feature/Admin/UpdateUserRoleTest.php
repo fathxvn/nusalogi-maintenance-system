@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class UpdateUserRoleTest extends TestCase
@@ -112,7 +113,6 @@ class UpdateUserRoleTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.users.edit', $target))
             ->assertOk()
-            ->assertViewHas('user')
-            ->assertViewHas('roles', User::ROLES);
+            ->assertInertia(fn (Assert $page) => $page->component('admin/users/edit')->where('user.id', $target->id)->where('roles', User::ROLES)->etc());
     }
 }

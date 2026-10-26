@@ -33,7 +33,7 @@ class WorkOrderStatusService
 
             $allowed = self::TRANSITIONS[$wo->status] ?? [];
 
-            if (!in_array($toStatus, $allowed, true)) {
+            if (! in_array($toStatus, $allowed, true)) {
                 throw ValidationException::withMessages([
                     'status' => 'Perubahan status tidak diperbolehkan.',
                 ]);
@@ -47,7 +47,7 @@ class WorkOrderStatusService
                     );
                 }
 
-                if (!$wo->technicians()->exists()) {
+                if (! $wo->technicians()->exists()) {
                     throw ValidationException::withMessages([
                         'technicians' => 'WO belum memiliki teknisi.',
                     ]);
@@ -59,7 +59,7 @@ class WorkOrderStatusService
                     ->where('users.id', $actor->id)
                     ->exists();
 
-                if (!$isAssigned) {
+                if (! $isAssigned) {
                     throw new AuthorizationException(
                         'Pengguna bukan teknisi yang ditugaskan.'
                     );
