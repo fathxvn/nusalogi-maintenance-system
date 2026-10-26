@@ -11,7 +11,7 @@
 
     <x-inertia::head />
 </head>
-<body>
+<body class="inertia-app">
     <x-inertia::app />
 </body>
 </html>
