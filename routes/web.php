@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return view('welcome');
@@ -10,6 +12,15 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard')
         ->name('dashboard');
+
+    Route::get('/migration-test', function (Request $request) {
+        return Inertia::render('migration-test', [
+            'user' => [
+                'id' => $request->user()->id,
+                'name' => $request->user()->name,
+            ],
+        ]);
+    })->name('migration.test');
 
     Route::middleware('role:admin')
         ->get('/admin/check', function () {
