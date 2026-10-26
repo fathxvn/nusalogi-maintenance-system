@@ -32,7 +32,7 @@ class InvoiceIssuanceService
                 ]);
             }
 
-            if (!$invoice->items()->exists()) {
+            if (! $invoice->items()->exists()) {
                 throw ValidationException::withMessages([
                     'items' => 'Invoice harus memiliki minimal satu item.',
                 ]);

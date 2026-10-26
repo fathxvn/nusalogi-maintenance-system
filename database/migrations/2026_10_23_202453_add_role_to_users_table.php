@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('role', 32)
-            ->nullable()
-            ->after('password');
+                ->nullable()
+                ->after('password');
         });
     }
 

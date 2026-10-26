@@ -88,8 +88,6 @@ class InvoicePaymentServiceTest extends TestCase
         $this->assertSame('1000000.00', $invoice->remainingBalance());
     }
 
-    
-    
     public function test_payment_is_rejected_when_invoice_is_draft(): void
     {
         $user = User::factory()->create();
@@ -114,7 +112,7 @@ class InvoicePaymentServiceTest extends TestCase
             'category' => 'cctv',
         ]);
 
-            $invoice = Invoice::create([
+        $invoice = Invoice::create([
             'invoice_number' => 'INV-DRAFT-001',
             'work_order_id' => $wo->id,
             'customer_id' => $customer->id,
@@ -122,29 +120,27 @@ class InvoicePaymentServiceTest extends TestCase
             'bill_to_name' => $customer->name,
         ]);
 
-    $this->assertSame('draft', $invoice->fresh()->status);
+        $this->assertSame('draft', $invoice->fresh()->status);
 
         $service = app(InvoicePaymentService::class);
 
-            try {
-                $service->recordPayment(
-                    $invoice->id,
-                    $user,
-                    '500000.00',
-                    'transfer',
-                    'TRF-DRAFT-001'
-                );
+        try {
+            $service->recordPayment(
+                $invoice->id,
+                $user,
+                '500000.00',
+                'transfer',
+                'TRF-DRAFT-001'
+            );
 
-                $this->fail('Pembayaran invoice draft seharusnya ditolak.');
-            } catch (ValidationException $e) {
-                $this->assertArrayHasKey('invoice', $e->errors());
-            }
-
-            $this->assertSame(0, $invoice->payments()->count());
+            $this->fail('Pembayaran invoice draft seharusnya ditolak.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('invoice', $e->errors());
         }
 
-    
-    
+        $this->assertSame(0, $invoice->payments()->count());
+    }
+
     public function test_payment_rejects_zero_and_negative_amounts(): void
     {
         $user = User::factory()->create();
@@ -202,7 +198,6 @@ class InvoicePaymentServiceTest extends TestCase
         $this->assertSame(0, $invoice->payments()->count());
     }
 
-    
     public function test_payment_is_rejected_after_invoice_is_fully_paid(): void
     {
         $user = User::factory()->create();
@@ -271,7 +266,4 @@ class InvoicePaymentServiceTest extends TestCase
         $this->assertSame(1, $invoice->payments()->count());
         $this->assertSame('0.00', $invoice->remainingBalance());
     }
-
-
-
 }
