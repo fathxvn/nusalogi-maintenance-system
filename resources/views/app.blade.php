@@ -13,5 +13,11 @@
 </head>
 <body class="inertia-app">
     <x-inertia::app />
+
+    @auth
+        <form id="nusalogi-logout-form" method="POST" action="{{ route('logout') }}" hidden>
+            @csrf
+        </form>
+    @endauth
 </body>
 </html>

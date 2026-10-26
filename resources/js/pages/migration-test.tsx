@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import type { UserSummary } from '@/types';
 
 type Props = {
@@ -19,18 +20,8 @@ export default function MigrationTest({ user }: Props) {
     const [clickCount, setClickCount] = useState(0);
 
     return (
-        <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-4 sm:p-8">
-            <header className="flex flex-col gap-2">
-                <p className="text-sm text-muted-foreground">
-                    Nusalogi Maintenance System
-                </p>
-                <h1 className="text-2xl font-semibold">
-                    React + Inertia Migration
-                </h1>
-                <p className="text-muted-foreground">
-                    Selamat datang, {user.name}.
-                </p>
-            </header>
+        <div className="flex w-full max-w-3xl flex-col gap-6">
+            <p className="text-sm text-muted-foreground">Selamat datang, {user.name}.</p>
 
             <Card>
                 <CardHeader>
@@ -61,12 +52,15 @@ export default function MigrationTest({ user }: Props) {
                     </p>
                 </CardFooter>
             </Card>
-
-            <footer>
-                <a href="/dashboard" className="text-sm underline underline-offset-4 hover:text-muted-foreground">
-                    Kembali ke Dashboard
-                </a>
-            </footer>
-        </main>
+        </div>
     );
 }
+
+MigrationTest.layout = (page: ReactNode) => (
+    <AuthenticatedLayout
+        title="Pratinjau Layout"
+        description="Coba tampilan komponen dan navigasi ruang kerja Nusalogi."
+    >
+        {page}
+    </AuthenticatedLayout>
+);
