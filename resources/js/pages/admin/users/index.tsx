@@ -2,20 +2,22 @@ import { Link, useForm } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { UserApprovalAction } from '@/components/user-approval-action';
 import { UserStatusAction } from '@/components/user-status-action';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
-import { dateLabel, roleLabels } from '@/lib/presentation';
+import { approvalLabels, dateLabel, roleLabels, statusClass } from '@/lib/presentation';
 import { cn } from '@/lib/utils';
 import type { Paginated, UserRecord, UserRole } from '@/types';
 
-type Row = UserRecord & { links: { edit: string; status: string }; is_self: boolean };
+type Row = UserRecord & { links: { edit: string; status: string; approve: string; reject: string }; is_self: boolean; can_review: boolean };
 type Props = {
     users: Paginated<Row>;
     roles: UserRole[];
-    filters: { search: string; role: string; status: string };
+    approvalRoles: UserRole[];
+    filters: { search: string; role: string; status: string; approval_status: string };
     links: { index: string; create: string };
 };
-export default function UserIndex({ users, roles, filters, links }: Props) {
+export default function UserIndex({ users, roles, approvalRoles, filters, links }: Props) {
     const form = useForm(filters);
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -89,6 +91,17 @@ export default function UserIndex({ users, roles, filters, links }: Props) {
                         <option value="inactive">Nonaktif</option>
                     </select>
                 </div>
+                <div className="flex flex-col gap-2">
+                    <label htmlFor="approval-filter" className="text-xs font-medium">Persetujuan</label>
+                    <select id="approval-filter" className="field-control" value={form.data.approval_status}
+                        onChange={(event) => form.setData('approval_status', event.target.value)}
+                        aria-invalid={!!form.errors.approval_status}
+                        aria-describedby={form.errors.approval_status ? 'approval-filter-error' : undefined}>
+                        <option value="">Semua persetujuan</option>
+                        {Object.entries(approvalLabels).map(([status, label]) => <option key={status} value={status}>{label}</option>)}
+                    </select>
+                    {form.errors.approval_status && <p id="approval-filter-error" role="alert" className="text-xs text-destructive">{form.errors.approval_status}</p>}
+                </div>
                 <Button
                     type="submit"
                     variant="outline"
@@ -109,7 +122,7 @@ export default function UserIndex({ users, roles, filters, links }: Props) {
                 <table className="soft-table">
                     <thead>
                         <tr>
-                            {['Nama', 'Email', 'Role', 'Status', 'Dibuat', 'Aksi'].map((label) => (
+                            {['Nama', 'Email', 'Role', 'Status akun', 'Persetujuan', 'Dibuat', 'Aksi'].map((label) => (
                                 <th key={label}>{label}</th>
                             ))}
                         </tr>
@@ -144,14 +157,23 @@ export default function UserIndex({ users, roles, filters, links }: Props) {
                                             {user.is_active ? 'Aktif' : 'Nonaktif'}
                                         </span>
                                     </td>
+                                    <td>
+                                        <span className={cn('status-badge', statusClass(user.approval_status))}>
+                                            {approvalLabels[user.approval_status]}
+                                        </span>
+                                    </td>
                                     <td className="whitespace-nowrap">
                                         {dateLabel(user.created_at ?? null)}
                                     </td>
                                     <td>
-                                        <div className="flex items-center gap-1 whitespace-nowrap">
-                                            {user.is_self ? (
+                                        <div className="flex flex-wrap items-center gap-1">
+                                            {user.can_review && <>
+                                                <UserApprovalAction user={user} action={user.links.approve} decision="approve" roles={approvalRoles} />
+                                                <UserApprovalAction user={user} action={user.links.reject} decision="reject" roles={approvalRoles} />
+                                            </>}
+                                            {user.is_self || user.approval_status !== 'approved' ? (
                                                 <span className="px-2 text-xs text-muted-foreground">
-                                                    Edit role dibatasi
+                                                    {user.is_self ? 'Edit role dibatasi' : 'Akses dibatasi'}
                                                 </span>
                                             ) : (
                                                 <Link
@@ -167,7 +189,7 @@ export default function UserIndex({ users, roles, filters, links }: Props) {
                                             <UserStatusAction
                                                 user={user}
                                                 action={user.links.status}
-                                                disabled={user.is_self}
+                                                disabled={user.is_self || user.approval_status !== 'approved'}
                                             />
                                         </div>
                                     </td>
@@ -175,7 +197,7 @@ export default function UserIndex({ users, roles, filters, links }: Props) {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={6} className="empty-state">
+                                <td colSpan={7} className="empty-state">
                                     Tidak ada pengguna yang sesuai dengan filter.
                                 </td>
                             </tr>

@@ -22,7 +22,7 @@ class UserPagesTest extends TestCase
             ->missing('users.data.0.password')->missing('users.data.0.remember_token')->etc());
         $keys = array_keys($response->inertiaProps('users.data.0'));
         sort($keys);
-        $this->assertSame(['created_at', 'email', 'id', 'is_active', 'is_self', 'links', 'name', 'role'], $keys);
+        $this->assertSame(['approval_status', 'can_review', 'created_at', 'email', 'id', 'is_active', 'is_self', 'links', 'name', 'role'], $keys);
     }
 
     public function test_search_role_and_status_filters_are_combined_without_or_leakage(): void
@@ -56,7 +56,7 @@ class UserPagesTest extends TestCase
         $target = User::factory()->create(['role' => 'teknisi', 'is_active' => true]);
         $this->actingAs($admin)->get(route('admin.users.create'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('admin/users/create')->where('roles', User::ROLES)->etc());
         $this->get(route('admin.users.edit', $target))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('admin/users/edit')->where('user', $target->only(['id', 'name', 'email', 'role', 'is_active']))
+            ->component('admin/users/edit')->where('user', $target->fresh()->only(['id', 'name', 'email', 'role', 'is_active', 'approval_status']))
             ->where('roles', User::ROLES)->etc());
     }
 

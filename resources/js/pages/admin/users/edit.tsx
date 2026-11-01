@@ -10,6 +10,7 @@ type Props = { user: UserRecord; roles: UserRole[]; links: { index: string; upda
 export default function EditUser({ user, roles, links }: Props) {
     const { auth } = usePage<SharedProps>().props;
     const isSelf = auth.user?.id === user.id;
+    const restricted = isSelf || user.approval_status !== 'approved';
     const form = useForm({ role: user.role ?? '' });
     function submit(event: FormEvent) {
         event.preventDefault();
@@ -27,7 +28,7 @@ export default function EditUser({ user, roles, links }: Props) {
                     className="field-control"
                     value={form.data.role}
                     required
-                    disabled={isSelf}
+                    disabled={restricted}
                     aria-invalid={!!form.errors.role}
                     aria-describedby={form.errors.role ? 'role-error' : undefined}
                     onChange={(event) => form.setData('role', event.target.value)}
@@ -40,16 +41,16 @@ export default function EditUser({ user, roles, links }: Props) {
                     ))}
                 </select>
             </FormField>
-            {isSelf && (
+            {restricted && (
                 <p className="text-sm text-muted-foreground">
-                    Role akun sendiri tidak dapat diubah.
+                    {isSelf ? 'Role akun sendiri tidak dapat diubah.' : 'Pendaftaran harus disetujui sebelum role dapat diubah.'}
                 </p>
             )}
             <div className="flex flex-wrap items-center gap-4">
                 <Button
                     type="submit"
                     className="h-10 px-4 hover:bg-primary-hover"
-                    disabled={isSelf || form.processing}
+                    disabled={restricted || form.processing}
                     aria-busy={form.processing}
                 >
                     {form.processing ? 'Menyimpan…' : 'Simpan role'}

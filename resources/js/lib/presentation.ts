@@ -1,4 +1,10 @@
-import type { UserRole } from '@/types';
+import type { ApprovalStatus, UserRole } from '@/types';
+
+export const approvalLabels: Record<ApprovalStatus, string> = {
+    pending: 'Menunggu persetujuan',
+    approved: 'Disetujui',
+    rejected: 'Ditolak',
+};
 
 export const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',

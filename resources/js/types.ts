@@ -3,6 +3,8 @@ export type UserSummary = {
     name: string;
 };
 
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 export type UserRole = 'admin' | 'koordinator' | 'teknisi';
 
 export type AuthenticatedUser = UserSummary & {
@@ -28,6 +30,7 @@ export type SharedProps = {
 export type UserRecord = AuthenticatedUser & {
     email: string;
     is_active: boolean;
+    approval_status: ApprovalStatus;
     created_at?: string | null;
     is_self?: boolean;
     links?: { edit: string; status: string };

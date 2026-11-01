@@ -20,13 +20,15 @@ class UserController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', Rule::in(User::ROLES)],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'approval_status' => ['nullable', Rule::in(User::APPROVAL_STATUSES)],
         ]);
         $filters = [
             'search' => trim($validated['search'] ?? ''),
             'role' => $validated['role'] ?? '',
             'status' => $validated['status'] ?? '',
+            'approval_status' => $validated['approval_status'] ?? '',
         ];
-        $users = User::query()->select(['id', 'name', 'email', 'role', 'is_active', 'created_at'])
+        $users = User::query()->select(['id', 'name', 'email', 'role', 'is_active', 'approval_status', 'google_id', 'created_at'])
             ->when($filters['search'] !== '', function (Builder $query) use ($filters): void {
                 $query->where(function (Builder $query) use ($filters): void {
                     $query->where('name', 'like', '%'.$filters['search'].'%')
@@ -35,14 +37,18 @@ class UserController extends Controller
             })
             ->when($filters['role'] !== '', fn (Builder $query) => $query->where('role', $filters['role']))
             ->when($filters['status'] !== '', fn (Builder $query) => $query->where('is_active', $filters['status'] === 'active'))
+            ->when($filters['approval_status'] !== '', fn (Builder $query) => $query->where('approval_status', $filters['approval_status']))
             ->latest('id')->paginate(10)->withQueryString()
             ->through(fn (User $user): array => [
-                ...$user->only(['id', 'name', 'email', 'role', 'is_active']),
+                ...$user->only(['id', 'name', 'email', 'role', 'is_active', 'approval_status']),
                 'created_at' => $user->created_at?->toDateString(),
                 'links' => [
                     'edit' => route('admin.users.edit', $user),
                     'status' => route('admin.users.update-status', $user),
+                    'approve' => route('admin.users.approve', $user),
+                    'reject' => route('admin.users.reject', $user),
                 ],
+                'can_review' => $user->google_id !== null && $user->approval_status === 'pending' && ! $request->user()->is($user),
                 'is_self' => $request->user()->is($user),
             ]);
 
@@ -50,6 +56,7 @@ class UserController extends Controller
             'users' => $users,
             'roles' => User::ROLES,
             'filters' => $filters,
+            'approvalRoles' => User::GOOGLE_APPROVAL_ROLES,
             'links' => ['index' => route('admin.users.index'), 'create' => route('admin.users.create')],
         ]);
     }
@@ -101,7 +108,7 @@ class UserController extends Controller
     public function edit(User $user): Response
     {
         return Inertia::render('admin/users/edit', [
-            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active']),
+            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active', 'approval_status']),
             'links' => ['index' => route('admin.users.index'), 'update' => route('admin.users.update-role', $user)],
             'roles' => User::ROLES,
         ]);
@@ -122,6 +129,12 @@ class UserController extends Controller
         if ($request->user()->is($user)) {
             return back()->withErrors([
                 'role' => 'anda tidak dapat mengubah role akun sendiri.',
+            ]);
+        }
+
+        if (! $user->isApproved()) {
+            return back()->withErrors([
+                'role' => 'Role hanya dapat diubah setelah pendaftaran disetujui.',
             ]);
         }
 
@@ -159,6 +172,12 @@ class UserController extends Controller
         ]);
 
         $newStatus = (bool) $validated['is_active'];
+
+        if ($newStatus && ! $user->isApproved()) {
+            return back()->withErrors([
+                'is_active' => 'Akun harus disetujui sebelum dapat diaktifkan.',
+            ]);
+        }
 
         if ($request->user()->is($user) && ! $newStatus) {
             return back()->withErrors([

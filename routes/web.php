@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\DashboardController;
@@ -54,6 +55,12 @@ Route::middleware('auth')->group(function () {
                 UserController::class,
                 'edit',
             ])->name('users.edit');
+
+            Route::patch('/users/{user}/approve', [UserApprovalController::class, 'approve'])
+                ->name('users.approve');
+
+            Route::patch('/users/{user}/reject', [UserApprovalController::class, 'reject'])
+                ->name('users.reject');
 
             Route::patch('/users/{user}/role', [
                 UserController::class,
