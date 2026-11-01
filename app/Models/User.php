@@ -64,4 +64,9 @@ class User extends Authenticatable
             ->withPivot('assigned_at')
             ->withTimestamps();
     }
+
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
+    }
 }
