@@ -99,7 +99,7 @@ class FortifyServiceProvider extends ServiceProvider
         | Custom Authentication
         |--------------------------------------------------------------------------
         |
-        | Hanya pengguna aktif dengan password benar yang dapat login.
+        | Hanya pengguna aktif dan disetujui dengan password benar yang dapat login.
         | Akun nonaktif tidak boleh membuat session baru.
         |
         */
@@ -113,7 +113,7 @@ class FortifyServiceProvider extends ServiceProvider
                 return null;
             }
 
-            if (! $user->isActive()) {
+            if (! $user->isActive() || ! $user->isApproved()) {
                 return null;
             }
 

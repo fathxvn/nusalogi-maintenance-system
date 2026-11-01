@@ -32,6 +32,10 @@ class User extends Authenticatable
         ];
     }
 
+    public const APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
+
+    public const GOOGLE_APPROVAL_ROLES = ['teknisi', 'koordinator'];
+
     public const ROLES = [
         'admin',
         'koordinator',
@@ -63,5 +67,10 @@ class User extends Authenticatable
         )
             ->withPivot('assigned_at')
             ->withTimestamps();
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
     }
 }

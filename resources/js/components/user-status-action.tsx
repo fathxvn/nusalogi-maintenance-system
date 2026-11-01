@@ -33,7 +33,7 @@ export function UserStatusAction({ user, action, disabled }: Props) {
                     <Button
                         type="button"
                         variant="ghost"
-                        disabled={disabled}
+                        disabled={disabled || user.approval_status !== 'approved'}
                         className="h-9 rounded-md px-2 text-xs"
                     />
                 }

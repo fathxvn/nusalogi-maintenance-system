@@ -15,20 +15,25 @@ class EnsureUserIsActive
     ): Response {
         $user = $request->user();
 
-        if (
-            $user
-            && ! ($user->fresh()?->isActive() ?? false)
-        ) {
-            Auth::logout();
+        if ($user) {
+            $freshUser = $user->fresh();
 
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            if (
+                ! $freshUser
+                || ! $freshUser->isActive()
+                || ! $freshUser->isApproved()
+            ) {
+                Auth::logout();
 
-            return redirect()
-                ->route('login')
-                ->withErrors([
-                    'email' => 'Akun Anda dinonaktifkan. Hubungi administrator.',
-                ]);
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()
+                    ->route('login')
+                    ->withErrors([
+                        'email' => 'Akun tidak aktif atau belum disetujui administrator.',
+                    ]);
+            }
         }
 
         return $next($request);
