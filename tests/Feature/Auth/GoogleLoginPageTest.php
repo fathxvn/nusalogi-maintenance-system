@@ -159,6 +159,37 @@ class GoogleLoginPageTest extends TestCase
         $this->assertGuest();
     }
 
+    /** @return array<string, array{array<string, string>, string}> */
+    public static function oauthFeedback(): array
+    {
+        return [
+            'pending registration status' => [
+                ['code' => 'code'],
+                'Pendaftaran Google berhasil. Persetujuan administrator diperlukan sebelum Anda dapat masuk.',
+            ],
+            'cancellation validation error' => [
+                ['error' => 'access_denied'],
+                'Login Google dibatalkan atau tidak diizinkan. Silakan coba lagi.',
+            ],
+        ];
+    }
+
+    /** @param array<string, string> $query */
+    #[DataProvider('oauthFeedback')]
+    public function test_inertia_login_handoff_preserves_oauth_feedback(array $query, string $message): void
+    {
+        Socialite::fake('google', $this->identity());
+        $this->get(route('auth.google.callback', $query))->assertRedirect(route('login'));
+
+        $this->withHeader('X-Inertia', 'true')->get(route('login'))
+            ->assertStatus(409)->assertHeader('X-Inertia-Location', route('login'));
+
+        $this->withHeaders(['X-Inertia' => ''])->get(route('login'))
+            ->assertOk()->assertViewIs('auth.login')->assertSee($message);
+        $this->get(route('login'))->assertOk()->assertDontSee($message);
+        $this->assertGuest();
+    }
+
     private function identity(string $name = 'Google User'): GoogleUser
     {
         return (new GoogleUser)->setRaw(['email_verified' => true])->map([

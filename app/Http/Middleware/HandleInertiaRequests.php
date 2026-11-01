@@ -23,6 +23,8 @@ class HandleInertiaRequests extends Middleware
     public function handle(Request $request, Closure $next): Response
     {
         if ($request->isMethod('GET') && $request->header('X-Inertia') && $request->routeIs('login', 'password.request', 'password.reset')) {
+            $request->session()->reflash();
+
             $response = Inertia::location($request->fullUrl());
             $response->headers->set('Cache-Control', 'no-store, private');
             $response->headers->set('Referrer-Policy', 'no-referrer');
