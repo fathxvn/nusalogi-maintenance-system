@@ -21,7 +21,7 @@ class ServiceReport extends Model
     {
         return [
             'submitted_at' => 'datetime',
-            'reviewed' => 'datetime',
+            'reviewed_at' => 'datetime',
 
         ];
     }
@@ -36,9 +36,17 @@ class ServiceReport extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function riviewer(): BelongsTo
+    public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /**
+     * Preserve the original relationship name for existing callers.
+     */
+    public function riviewer(): BelongsTo
+    {
+        return $this->reviewer();
     }
 
     public function photos(): HasMany

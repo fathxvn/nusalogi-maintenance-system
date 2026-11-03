@@ -28,6 +28,6 @@ class CustomerSite extends Model
 
     public function workOrders(): HasMany
     {
-        return $this->hasMany(WorkOrders::class);
+        return $this->hasMany(WorkOrder::class);
     }
 }
