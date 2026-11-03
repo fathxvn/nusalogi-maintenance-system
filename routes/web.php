@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
@@ -71,5 +72,8 @@ Route::middleware('auth')->group(function () {
                 UserController::class,
                 'UpdateStatus',
             ])->name('users.update-status');
+
+            Route::get('/customers', [CustomerController::class, 'index'])
+                ->name('customers.index');
         });
 });

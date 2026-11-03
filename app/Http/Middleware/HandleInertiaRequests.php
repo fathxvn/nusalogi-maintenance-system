@@ -78,7 +78,7 @@ class HandleInertiaRequests extends Middleware
         $items = [
             ['id' => 'dashboard', 'label' => 'Dashboard', 'route' => 'dashboard'],
             ['id' => 'work-orders', 'label' => 'Work Order', 'route' => null],
-            ['id' => 'customers', 'label' => 'Customer', 'route' => null],
+            ['id' => 'customers', 'label' => 'Customer', 'route' => $user->hasRole('admin') ? 'admin.customers.index' : null],
             ['id' => 'assets', 'label' => 'Asset', 'route' => null],
             ['id' => 'invoices', 'label' => 'Invoice', 'route' => null],
         ];
@@ -92,14 +92,28 @@ class HandleInertiaRequests extends Middleware
         return array_map(function (array $item) use ($request): array {
             $routeName = $item['route'];
             $hasRoute = $routeName !== null && Route::has($routeName);
-            $routePattern = $item['id'] === 'users' ? 'admin.users.*' : $routeName;
+            $routePattern = match ($item['id']) {
+                'dashboard' => 'dashboard',
+                'work-orders' => 'work-orders.*',
+                'customers' => 'admin.customers.*',
+                'assets' => 'assets.*',
+                'invoices' => 'invoices.*',
+                'users' => 'admin.users.*',
+                'preview' => 'migration.test',
+                default => $routeName,
+            };
 
             return [
                 'id' => $item['id'],
                 'label' => $item['label'],
                 'href' => $hasRoute ? route($routeName) : null,
                 'active' => $hasRoute && $request->routeIs($routePattern),
-                'inertia' => in_array($routeName, ['dashboard', 'admin.users.index', 'migration.test'], true),
+                'inertia' => in_array($routeName, [
+                    'dashboard',
+                    'admin.users.index',
+                    'admin.customers.index',
+                    'migration.test',
+                ], true),
             ];
         }, $items);
     }
