@@ -1,9 +1,11 @@
 import { Link, useForm } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 
+import { CustomerDeleteAction } from '@/components/customer-delete-action';
 import { Button, buttonVariants } from '@/components/ui/button';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
+import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types';
 
 type Customer = {
@@ -13,6 +15,7 @@ type Customer = {
     phone: string | null;
     email: string | null;
     sites_count: number;
+    links: { show: string; edit: string; destroy: string };
 };
 
 type Props = {
@@ -22,6 +25,7 @@ type Props = {
     };
     links: {
         index: string;
+        create: string;
     };
 };
 
@@ -56,6 +60,13 @@ export default function CustomerIndex({
                     Total {customers.total} customer terdaftar
                 </p>
             </section>
+
+            <div className="flex justify-end">
+                <Link href={links.create} className={cn(buttonVariants(), 'h-10 rounded-md px-4 hover:bg-primary-hover')}>
+                    <Plus aria-hidden="true" />
+                    Tambah Customer
+                </Link>
+            </div>
 
             {/* Customer Search */}
             <form
@@ -129,6 +140,7 @@ export default function CustomerIndex({
                             <th>Telepon</th>
                             <th>Email</th>
                             <th>Jumlah Site</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
 
@@ -155,12 +167,23 @@ export default function CustomerIndex({
                                     <td>
                                         {customer.sites_count}
                                     </td>
+                                    <td>
+                                        <div className="flex flex-wrap items-center gap-1">
+                                            <Link href={customer.links.show} className={cn(buttonVariants({ variant: 'ghost' }), 'h-9 px-2 text-xs')} aria-label={`Detail customer ${customer.name}`}>
+                                                Detail
+                                            </Link>
+                                            <Link href={customer.links.edit} className={cn(buttonVariants({ variant: 'ghost' }), 'h-9 px-2 text-xs')} aria-label={`Edit customer ${customer.name}`}>
+                                                Edit
+                                            </Link>
+                                            <CustomerDeleteAction customer={customer} action={customer.links.destroy} />
+                                        </div>
+                                    </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
                                 <td
-                                    colSpan={5}
+                                    colSpan={6}
                                     className="empty-state"
                                 >
                                     {filters.search
