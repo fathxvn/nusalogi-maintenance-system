@@ -84,6 +84,7 @@ class CustomerSearchTest extends TestCase
         return [
             'company name' => ['name', 'PT Nusantara Teknik', 'Nusantara'],
             'PIC name' => ['pic_name', 'Budi Santoso', 'Santoso'],
+            'Unicode PIC name' => ['pic_name', 'José Wijaya', 'José'],
             'email' => ['email', 'sales@nusantara.test', 'sales@'],
         ];
     }
@@ -175,7 +176,26 @@ class CustomerSearchTest extends TestCase
         return [
             'array' => [['invalid'], 'The search field must be a string.'],
             'too long' => [str_repeat('a', 101), 'The search field must not be greater than 100 characters.'],
+            'invalid UTF-8' => ["\xFF", 'The search field must be encoded in UTF-8.'],
         ];
+    }
+
+    public function test_malformed_search_is_rejected_during_inertia_navigation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $initialPage = $this->actingAs($admin)->get(route('admin.customers.index'))->assertOk()->inertiaPage();
+
+        $response = $this->from(route('admin.customers.index'))
+            ->get(route('admin.customers.index').'?search=%FF', [
+                'X-Inertia' => 'true',
+                'X-Inertia-Version' => $initialPage['version'],
+            ]);
+
+        $response->assertRedirectToRoute('admin.customers.index');
+        $this->get(route('admin.customers.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('errors.search', 'The search field must be encoded in UTF-8.')
+                ->etc());
     }
 
     #[DataProvider('unmatchedSearches')]

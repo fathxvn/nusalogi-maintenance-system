@@ -15,7 +15,7 @@ class CustomerController extends Controller
     {
         // Validasi input pencarian
         $validated = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
+            'search' => ['nullable', 'string', 'max:100', 'encoding:UTF-8'],
         ]);
 
         $search = trim($validated['search'] ?? '');

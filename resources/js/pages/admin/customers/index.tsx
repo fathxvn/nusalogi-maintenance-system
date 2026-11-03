@@ -25,7 +25,11 @@ type Props = {
     };
 };
 
-export default function CustomerIndex({ customers, filters, links }: Props) {
+export default function CustomerIndex({
+    customers,
+    filters,
+    links,
+}: Props) {
     const form = useForm({
         search: filters.search,
     });
@@ -39,8 +43,10 @@ export default function CustomerIndex({ customers, filters, links }: Props) {
             replace: true,
         });
     }
+
     return (
         <>
+            {/* Customer Summary */}
             <section className="panel">
                 <h2 className="section-title">
                     Daftar Customer
@@ -51,32 +57,49 @@ export default function CustomerIndex({ customers, filters, links }: Props) {
                 </p>
             </section>
 
+            {/* Customer Search */}
             <form
                 onSubmit={submit}
                 className="flex flex-wrap items-end gap-3"
                 aria-label="Pencarian customer"
             >
                 <div className="flex min-w-52 flex-1 flex-col gap-2">
-                    <label htmlFor="customer-search" className="text-xs font-medium">
-                        Cari nama perusahaan, PIC, atau email
+                    <label
+                        htmlFor="customer-search"
+                        className="text-xs font-medium"
+                    >
+                        Cari nama customer, PIC, atau email
                     </label>
+
                     <input
                         id="customer-search"
                         type="search"
-                        maxLength={100}
                         className="field-control"
+                        placeholder="Cari customer..."
+                        maxLength={100}
                         value={form.data.search}
-                        onChange={(event) => form.setData('search', event.target.value)}
-                        placeholder="Nama perusahaan, PIC, atau email"
+                        onChange={(event) =>
+                            form.setData('search', event.target.value)
+                        }
                         aria-invalid={!!form.errors.search}
-                        aria-describedby={form.errors.search ? 'customer-search-error' : undefined}
+                        aria-describedby={
+                            form.errors.search
+                                ? 'customer-search-error'
+                                : undefined
+                        }
                     />
+
                     {form.errors.search && (
-                        <p id="customer-search-error" role="alert" className="text-xs text-destructive">
+                        <p
+                            id="customer-search-error"
+                            role="alert"
+                            className="text-xs text-destructive"
+                        >
                             {form.errors.search}
                         </p>
                     )}
                 </div>
+
                 <Button
                     type="submit"
                     variant="outline"
@@ -85,17 +108,18 @@ export default function CustomerIndex({ customers, filters, links }: Props) {
                     aria-busy={form.processing}
                 >
                     <Search aria-hidden="true" />
-                    Cari
+                    {form.processing ? 'Mencari...' : 'Cari'}
                 </Button>
+
                 <Link
                     href={links.index}
-                    preserveScroll
                     className="inline-flex min-h-10 items-center px-2 text-sm text-muted-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
                 >
-                    Reset pencarian
+                    Reset filter
                 </Link>
             </form>
 
+            {/* Customer Table */}
             <div className="table-shell">
                 <table className="soft-table">
                     <thead>
@@ -112,16 +136,33 @@ export default function CustomerIndex({ customers, filters, links }: Props) {
                         {customers.data.length > 0 ? (
                             customers.data.map((customer) => (
                                 <tr key={customer.id}>
-                                    <td className="font-medium">{customer.name}</td>
-                                    <td>{customer.pic_name ?? '—'}</td>
-                                    <td>{customer.phone ?? '—'}</td>
-                                    <td>{customer.email ?? '—'}</td>
-                                    <td>{customer.sites_count}</td>
+                                    <td className="font-medium">
+                                        {customer.name}
+                                    </td>
+
+                                    <td>
+                                        {customer.pic_name ?? '—'}
+                                    </td>
+
+                                    <td>
+                                        {customer.phone ?? '—'}
+                                    </td>
+
+                                    <td>
+                                        {customer.email ?? '—'}
+                                    </td>
+
+                                    <td>
+                                        {customer.sites_count}
+                                    </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={5} className="empty-state">
+                                <td
+                                    colSpan={5}
+                                    className="empty-state"
+                                >
                                     {filters.search
                                         ? 'Tidak ada customer yang sesuai dengan pencarian.'
                                         : 'Belum ada data customer.'}
@@ -132,13 +173,17 @@ export default function CustomerIndex({ customers, filters, links }: Props) {
                 </table>
             </div>
 
+            {/* Customer Pagination */}
             <nav
                 aria-label="Pagination customer"
                 className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"
             >
                 <p>
-                    {customers.from ?? 0}–{customers.to ?? 0} dari {customers.total} customer · Halaman{' '}
-                    {customers.current_page} / {customers.last_page}
+                    {customers.from ?? 0}–
+                    {customers.to ?? 0} dari{' '}
+                    {customers.total} customer · Halaman{' '}
+                    {customers.current_page} /{' '}
+                    {customers.last_page}
                 </p>
 
                 <div className="flex gap-2">
@@ -146,12 +191,19 @@ export default function CustomerIndex({ customers, filters, links }: Props) {
                         <Link
                             preserveScroll
                             href={customers.prev_page_url}
-                            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'sm',
+                            })}
                         >
                             Sebelumnya
                         </Link>
                     ) : (
-                        <Button variant="outline" size="sm" disabled>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                        >
                             Sebelumnya
                         </Button>
                     )}
@@ -160,12 +212,19 @@ export default function CustomerIndex({ customers, filters, links }: Props) {
                         <Link
                             preserveScroll
                             href={customers.next_page_url}
-                            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'sm',
+                            })}
                         >
                             Berikutnya
                         </Link>
                     ) : (
-                        <Button variant="outline" size="sm" disabled>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                        >
                             Berikutnya
                         </Button>
                     )}

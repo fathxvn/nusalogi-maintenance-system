@@ -17,7 +17,7 @@ class UserController extends Controller
     public function index(Request $request): Response
     {
         $validated = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
+            'search' => ['nullable', 'string', 'max:100', 'encoding:UTF-8'],
             'role' => ['nullable', Rule::in(User::ROLES)],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'approval_status' => ['nullable', Rule::in(User::APPROVAL_STATUSES)],
