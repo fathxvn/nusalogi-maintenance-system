@@ -18,11 +18,11 @@ return new class extends Migration
 
             $table->foreignId('customer_site_id')
                 ->constrained('customer_sites')
-                ->restricOnDelete();
+                ->restrictOnDelete();
 
             $table->foreignId('created_by')
                 ->constrained('users')
-                ->restricOnDelete();
+                ->restrictOnDelete();
 
             $table->foreignId('verified_by')
                 ->nullable()
