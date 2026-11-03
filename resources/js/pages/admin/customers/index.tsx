@@ -1,5 +1,6 @@
-import { Link } from '@inertiajs/react';
-import type { ReactNode } from 'react';
+import { Link, useForm } from '@inertiajs/react';
+import { Search } from 'lucide-react';
+import type { FormEvent, ReactNode } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
@@ -16,9 +17,28 @@ type Customer = {
 
 type Props = {
     customers: Paginated<Customer>;
+    filters: {
+        search: string;
+    };
+    links: {
+        index: string;
+    };
 };
 
-export default function CustomerIndex({ customers }: Props) {
+export default function CustomerIndex({ customers, filters, links }: Props) {
+    const form = useForm({
+        search: filters.search,
+    });
+
+    function submit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        form.get(links.index, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    }
     return (
         <>
             <section className="panel">
@@ -30,6 +50,51 @@ export default function CustomerIndex({ customers }: Props) {
                     Total {customers.total} customer terdaftar
                 </p>
             </section>
+
+            <form
+                onSubmit={submit}
+                className="flex flex-wrap items-end gap-3"
+                aria-label="Pencarian customer"
+            >
+                <div className="flex min-w-52 flex-1 flex-col gap-2">
+                    <label htmlFor="customer-search" className="text-xs font-medium">
+                        Cari nama perusahaan, PIC, atau email
+                    </label>
+                    <input
+                        id="customer-search"
+                        type="search"
+                        maxLength={100}
+                        className="field-control"
+                        value={form.data.search}
+                        onChange={(event) => form.setData('search', event.target.value)}
+                        placeholder="Nama perusahaan, PIC, atau email"
+                        aria-invalid={!!form.errors.search}
+                        aria-describedby={form.errors.search ? 'customer-search-error' : undefined}
+                    />
+                    {form.errors.search && (
+                        <p id="customer-search-error" role="alert" className="text-xs text-destructive">
+                            {form.errors.search}
+                        </p>
+                    )}
+                </div>
+                <Button
+                    type="submit"
+                    variant="outline"
+                    className="h-10 rounded-md"
+                    disabled={form.processing}
+                    aria-busy={form.processing}
+                >
+                    <Search aria-hidden="true" />
+                    Cari
+                </Button>
+                <Link
+                    href={links.index}
+                    preserveScroll
+                    className="inline-flex min-h-10 items-center px-2 text-sm text-muted-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                    Reset pencarian
+                </Link>
+            </form>
 
             <div className="table-shell">
                 <table className="soft-table">
@@ -57,7 +122,9 @@ export default function CustomerIndex({ customers }: Props) {
                         ) : (
                             <tr>
                                 <td colSpan={5} className="empty-state">
-                                    Belum ada data customer.
+                                    {filters.search
+                                        ? 'Tidak ada customer yang sesuai dengan pencarian.'
+                                        : 'Belum ada data customer.'}
                                 </td>
                             </tr>
                         )}
