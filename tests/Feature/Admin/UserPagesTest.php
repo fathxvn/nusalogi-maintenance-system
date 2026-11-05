@@ -77,6 +77,24 @@ class UserPagesTest extends TestCase
         ];
     }
 
+    public function test_malformed_search_is_rejected_during_inertia_navigation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $initialPage = $this->actingAs($admin)->get(route('admin.users.index'))->assertOk()->inertiaPage();
+
+        $response = $this->from(route('admin.users.index'))
+            ->get(route('admin.users.index').'?search=%FF', [
+                'X-Inertia' => 'true',
+                'X-Inertia-Version' => $initialPage['version'],
+            ]);
+
+        $response->assertRedirectToRoute('admin.users.index');
+        $this->get(route('admin.users.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('errors.search', 'The search field must be encoded in UTF-8.')
+                ->etc());
+    }
+
     public function test_success_feedback_survives_redirect_without_exposing_passwords(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'is_active' => true]);
