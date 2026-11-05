@@ -86,3 +86,35 @@ export type DashboardProps = {
         customer: string | null; site: string | null; status: string; priority: string; technicians: string[];
     }[];
 };
+
+export type AssetRecord = {
+    id: number;
+    asset_code: string;
+    category: string;
+    brand: string | null;
+    model: string | null;
+    serial_number: string | null;
+    status: string;
+    installed_at: string | null;
+    site: {
+        id: number | null;
+        site_name: string | null;
+        customer_name: string | null;
+    };
+};
+
+export type AssetSiteOption = {
+    id: number;
+    site_name: string;
+    customer_name: string | null;
+};
+
+export type AssetFormData = {
+    customer_site_id: string;
+    asset_code: string;
+    category: string;
+    brand: string;
+    model: string;
+    serial_number: string;
+    installed_at: string;
+};
