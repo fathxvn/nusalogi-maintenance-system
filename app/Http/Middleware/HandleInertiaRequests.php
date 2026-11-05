@@ -79,7 +79,7 @@ class HandleInertiaRequests extends Middleware
             ['id' => 'dashboard', 'label' => 'Dashboard', 'route' => 'dashboard'],
             ['id' => 'work-orders', 'label' => 'Work Order', 'route' => null],
             ['id' => 'customers', 'label' => 'Customer', 'route' => $user->hasRole('admin') ? 'admin.customers.index' : null],
-            ['id' => 'assets', 'label' => 'Asset', 'route' => null],
+            ['id' => 'assets', 'label' => 'Asset', 'route' => $user->hasRole('admin') ? 'admin.assets.index' : null],
             ['id' => 'invoices', 'label' => 'Invoice', 'route' => null],
         ];
 
@@ -96,7 +96,7 @@ class HandleInertiaRequests extends Middleware
                 'dashboard' => 'dashboard',
                 'work-orders' => 'work-orders.*',
                 'customers' => 'admin.customers.*',
-                'assets' => 'assets.*',
+                'assets' => 'admin.assets.*',
                 'invoices' => 'invoices.*',
                 'users' => 'admin.users.*',
                 'preview' => 'migration.test',
@@ -112,6 +112,7 @@ class HandleInertiaRequests extends Middleware
                     'dashboard',
                     'admin.users.index',
                     'admin.customers.index',
+                    'admin.assets.index',
                     'migration.test',
                 ], true),
             ];

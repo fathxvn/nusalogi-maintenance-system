@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AssetController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\CustomerSiteController;
 use App\Http\Controllers\Admin\UserApprovalController;
@@ -108,5 +109,26 @@ Route::middleware('auth')->group(function () {
             Route::patch('/customers/{customer}/sites/{site}', [CustomerSiteController::class, 'update'])
                 ->scopeBindings()
                 ->name('customers.sites.update');
+
+            Route::get('/assets', [AssetController::class, 'index'])
+                ->name('assets.index');
+
+            Route::get('/assets/create', [AssetController::class, 'create'])
+                ->name('assets.create');
+
+            Route::post('/assets', [AssetController::class, 'store'])
+                ->name('assets.store');
+
+            Route::get('/assets/{asset}', [AssetController::class, 'show'])
+                ->name('assets.show');
+
+            Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])
+                ->name('assets.edit');
+
+            Route::patch('/assets/{asset}', [AssetController::class, 'update'])
+                ->name('assets.update');
+
+            Route::delete('/assets/{asset}', [AssetController::class, 'destroy'])
+                ->name('assets.destroy');
         });
 });
