@@ -27,6 +27,7 @@ export function Link({ children, preserveScroll, ...props }) { return React.crea
 const reactMock = moduleUrl(`export * from ${JSON.stringify(reactUrl)};
 export const stateChanges = [];
 export function useState(initial) { return [initial, value => stateChanges.push(value)]; }
+export function useRef(initial) { return { current: initial }; }
 `);
 const layoutMock = moduleUrl('export default function Layout({children}) { return children; }');
 const cache = new Map();

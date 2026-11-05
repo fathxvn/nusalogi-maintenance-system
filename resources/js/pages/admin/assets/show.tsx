@@ -1,15 +1,19 @@
 import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
+import { AssetDeleteAction } from '@/components/asset-delete-action';
 import { buttonVariants } from '@/components/ui/button';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { dateLabel } from '@/lib/presentation';
+import { cn } from '@/lib/utils';
 import type { AssetRecord } from '@/types';
 
 type Props = {
     asset: AssetRecord;
     links: {
         index: string;
+        edit: string;
+        destroy: string;
     };
 };
 
@@ -31,7 +35,7 @@ export default function ShowAsset({ asset, links }: Props) {
 
     return (
         <>
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-end gap-3">
                 <Link
                     href={links.index}
                     className={buttonVariants({
@@ -40,6 +44,13 @@ export default function ShowAsset({ asset, links }: Props) {
                 >
                     Kembali ke Asset
                 </Link>
+                <Link
+                    href={links.edit}
+                    className={cn(buttonVariants(), 'h-10 px-4 hover:bg-primary-hover')}
+                >
+                    Edit Asset
+                </Link>
+                <AssetDeleteAction asset={asset} action={links.destroy} className="h-10 px-4 text-sm" />
             </div>
 
             <section className="panel flex flex-col gap-5" aria-labelledby="asset-details-title">

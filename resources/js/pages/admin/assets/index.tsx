@@ -2,6 +2,7 @@ import { Link, useForm } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 
+import { AssetDeleteAction } from '@/components/asset-delete-action';
 import { Button, buttonVariants } from '@/components/ui/button';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { cn } from '@/lib/utils';
@@ -10,6 +11,7 @@ import type { AssetRecord, Paginated } from '@/types';
 type AssetListItem = AssetRecord & {
     links: {
         show: string;
+        destroy: string;
     };
 };
 
@@ -164,16 +166,19 @@ export default function AssetIndex({ assets, filters, links }: Props) {
                                             : asset.status}
                                     </td>
                                     <td>
-                                        <Link
-                                            href={asset.links.show}
-                                            aria-label={`Detail asset ${asset.asset_code}`}
-                                            className={buttonVariants({
-                                                variant: 'ghost',
-                                                size: 'sm',
-                                            })}
-                                        >
-                                            Detail
-                                        </Link>
+                                        <div className="flex items-center gap-2">
+                                            <Link
+                                                href={asset.links.show}
+                                                aria-label={`Detail asset ${asset.asset_code}`}
+                                                className={buttonVariants({
+                                                    variant: 'ghost',
+                                                    size: 'sm',
+                                                })}
+                                            >
+                                                Detail
+                                            </Link>
+                                            <AssetDeleteAction asset={asset} action={asset.links.destroy} />
+                                        </div>
                                     </td>
                                 </tr>
                             ))

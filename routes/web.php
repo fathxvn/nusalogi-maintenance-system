@@ -121,5 +121,14 @@ Route::middleware('auth')->group(function () {
 
             Route::get('/assets/{asset}', [AssetController::class, 'show'])
                 ->name('assets.show');
+
+            Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])
+                ->name('assets.edit');
+
+            Route::patch('/assets/{asset}', [AssetController::class, 'update'])
+                ->name('assets.update');
+
+            Route::delete('/assets/{asset}', [AssetController::class, 'destroy'])
+                ->name('assets.destroy');
         });
 });
