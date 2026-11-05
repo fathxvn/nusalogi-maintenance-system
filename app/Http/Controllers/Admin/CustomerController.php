@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerSite;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -98,12 +99,18 @@ class CustomerController extends Controller
             'customer' => [
                 ...$customer->only(['id', 'name', 'pic_name', 'phone', 'email', 'billing_address', 'sites_count']),
                 'created_at' => $customer->created_at?->toDateString(),
-                'sites' => $customer->sites->toArray(),
+                'sites' => $customer->sites->map(fn (CustomerSite $site): array => [
+                    ...$site->only(['id', 'site_name', 'address', 'pic_name', 'pic_phone']),
+                    'links' => [
+                        'edit' => route('admin.customers.sites.edit', [$customer, $site]),
+                    ],
+                ])->all(),
             ],
             'links' => [
                 'index' => route('admin.customers.index'),
                 'edit' => route('admin.customers.edit', $customer),
                 'destroy' => route('admin.customers.destroy', $customer),
+                'createSite' => route('admin.customers.sites.create', $customer),
             ],
         ]);
     }

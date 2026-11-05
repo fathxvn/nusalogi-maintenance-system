@@ -62,6 +62,21 @@ export type CustomerFormData = {
     email: string;
     billing_address: string;
 };
+
+export type CustomerSiteRecord = {
+    id: number;
+    site_name: string;
+    address: string;
+    pic_name: string | null;
+    pic_phone: string | null;
+};
+
+export type CustomerSiteFormData = {
+    site_name: string;
+    address: string;
+    pic_name: string;
+    pic_phone: string;
+};
 export type DashboardProps = {
     metrics: { active: number; today: number; customers: number; pendingInvoices: number };
     trend: { month: string; total: number }[];

@@ -52,6 +52,9 @@ function loadComponent(path) {
 const { configure } = await import(inertiaMock);
 const { stateChanges } = await import(reactMock);
 const { CustomerForm } = await import(loadComponent(resolve('resources/js/components/customer-form.tsx')));
+const { CustomerSiteForm } = await import(loadComponent(resolve('resources/js/components/customer-site-form.tsx')));
+const { default: CreateCustomerSite } = await import(loadComponent(resolve('resources/js/pages/admin/customers/sites/create.tsx')));
+const { default: EditCustomerSite } = await import(loadComponent(resolve('resources/js/pages/admin/customers/sites/edit.tsx')));
 const { CustomerDeleteAction } = await import(loadComponent(resolve('resources/js/components/customer-delete-action.tsx')));
 const { default: CreateCustomer } = await import(loadComponent(resolve('resources/js/pages/admin/customers/create.tsx')));
 const { default: EditCustomer } = await import(loadComponent(resolve('resources/js/pages/admin/customers/edit.tsx')));
@@ -156,8 +159,8 @@ test('delete failure is visible and processing prevents closing or repeat confir
 test('detail renders customer and site information as escaped text', () => {
     configure();
     const tree = ShowCustomer({
-        customer: { ...customer, name: '<script>alert(1)</script>', created_at: '2026-11-04', sites_count: 1, sites: [{ id: 1, site_name: 'Office', address: 'Bekasi', pic_name: null, pic_phone: null }] },
-        links: { index: '/admin/customers', edit: '/admin/customers/7/edit', destroy: '/admin/customers/7' },
+        customer: { ...customer, name: '<script>alert(1)</script>', created_at: '2026-11-04', sites_count: 1, sites: [{ id: 1, site_name: 'Office', address: 'Bekasi', pic_name: null, pic_phone: null, links: { edit: '/admin/customers/7/sites/1/edit' } }] },
+        links: { index: '/admin/customers', edit: '/admin/customers/7/edit', destroy: '/admin/customers/7', createSite: '/admin/customers/7/sites/create' },
     });
     const html = renderToStaticMarkup(tree);
     assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
@@ -166,6 +169,120 @@ test('detail renders customer and site information as escaped text', () => {
     assert.ok(html.includes('office@example.test'));
     assert.ok(html.includes('Bekasi'));
     assert.ok(html.includes('href="/admin/customers/7/edit"'));
+});
+
+const site = { id: 3, site_name: 'Kantor Bekasi', address: 'Jl. Testing 1\nBekasi', pic_name: 'José Wijaya', pic_phone: '+62 812' };
+const siteFormProps = { customer, action: '/admin/customers/7/sites', method: 'post', cancelHref: '/admin/customers/7', submitLabel: 'Simpan Site' };
+
+test('site create form displays customer identity and posts entered fields without customer_id', () => {
+    const form = configure();
+    const tree = CustomerSiteForm(siteFormProps);
+    assert.deepEqual(form.initial, { site_name: '', address: '', pic_name: '', pic_phone: '' });
+    for (const [name, value] of Object.entries({ site_name: site.site_name, address: site.address, pic_name: site.pic_name, pic_phone: site.pic_phone })) {
+        findElement(tree, element => element.props.name === name).props.onChange({ target: { value } });
+        assert.equal(form.data[name], value);
+    }
+    let prevented = false;
+    tree.props.onSubmit({ preventDefault() { prevented = true; } });
+    assert.equal(prevented, true);
+    assert.deepEqual(form.calls, [['post', '/admin/customers/7/sites']]);
+    assert.equal(findElement(tree, element => element.props.name === 'customer_id'), undefined);
+    assert.ok(renderToStaticMarkup(tree).includes('PT Testing'));
+    assert.equal(findElement(tree, element => element.props.children === 'Batal').props.href, '/admin/customers/7');
+});
+
+test('site form applies required fields and database length limits', () => {
+    configure();
+    const tree = CustomerSiteForm(siteFormProps);
+    for (const [name, required, maxLength] of [['site_name', true, 150], ['address', true, 65535], ['pic_name', false, 150], ['pic_phone', false, 30]]) {
+        const input = findElement(tree, element => element.props.name === name);
+        assert.equal(input.props.required, required);
+        assert.equal(input.props.maxLength, maxLength);
+        assert.ok(input.props.className.includes('field-control'));
+    }
+    assert.equal(findElement(tree, element => element.props.name === 'pic_phone').props.type, 'tel');
+});
+
+test('site edit form prefills all fields and sends PATCH with the edited address', () => {
+    const form = configure();
+    const tree = CustomerSiteForm({ ...siteFormProps, site, action: '/admin/customers/7/sites/3', method: 'patch' });
+    assert.deepEqual(form.initial, { site_name: site.site_name, address: site.address, pic_name: site.pic_name, pic_phone: site.pic_phone });
+    findElement(tree, element => element.props.name === 'address').props.onChange({ target: { value: 'Alamat Baru' } });
+    tree.props.onSubmit({ preventDefault() {} });
+    assert.equal(form.data.address, 'Alamat Baru');
+    assert.deepEqual(form.calls, [['patch', '/admin/customers/7/sites/3']]);
+
+    const nullableForm = configure();
+    CustomerSiteForm({ ...siteFormProps, site: { ...site, pic_name: null, pic_phone: null } });
+    assert.equal(nullableForm.initial.pic_name, '');
+    assert.equal(nullableForm.initial.pic_phone, '');
+});
+
+test('site validation feedback retains values, associates errors and disables submit during processing', () => {
+    const data = { site_name: 'Retained Site', address: 'Alamat tetap', pic_name: 'Retained PIC', pic_phone: 'bad phone' };
+    const errors = { site_name: 'Nama wajib diisi.', address: 'Alamat site maksimal 65.535 byte.', pic_name: 'PIC terlalu panjang.', pic_phone: 'Telepon terlalu panjang.' };
+    configure({ data, errors, processing: true });
+    const tree = CustomerSiteForm(siteFormProps);
+    const html = renderToStaticMarkup(tree);
+    for (const [name, value] of Object.entries(data)) {
+        const field = findElement(tree, element => element.props.name === name);
+        assert.equal(field.props.value, value);
+        assert.equal(field.props['aria-invalid'], true);
+        assert.equal(field.props['aria-describedby'], `${field.props.id}-error`);
+        assert.ok(html.includes(`id="${field.props.id}-error" role="alert"`));
+        assert.ok(html.includes(errors[name]));
+    }
+    const submit = findElement(tree, element => element.props.type === 'submit');
+    assert.equal(submit.props.disabled, true);
+    assert.equal(submit.props['aria-busy'], true);
+    assert.ok(html.includes('Menyimpan…'));
+});
+
+test('site create and edit pages use customer-specific URLs and authenticated layouts', () => {
+    const create = CreateCustomerSite({ customer, links: { show: '/admin/customers/7', store: '/admin/customers/7/sites' } });
+    const edit = EditCustomerSite({ customer, site, links: { show: '/admin/customers/7', update: '/admin/customers/7/sites/3' } });
+    assert.equal(create.type, CustomerSiteForm);
+    assert.equal(create.props.customer, customer);
+    assert.equal(create.props.method, 'post');
+    assert.equal(create.props.action, '/admin/customers/7/sites');
+    assert.equal(create.props.cancelHref, '/admin/customers/7');
+    assert.equal(edit.type, CustomerSiteForm);
+    assert.equal(edit.props.customer, customer);
+    assert.equal(edit.props.site, site);
+    assert.equal(edit.props.method, 'patch');
+    assert.equal(edit.props.action, '/admin/customers/7/sites/3');
+    assert.equal(edit.props.cancelHref, '/admin/customers/7');
+    assert.equal(CreateCustomerSite.layout(create).props.title, 'Tambah Site');
+    assert.equal(EditCustomerSite.layout(edit).props.title, 'Edit Site');
+});
+
+test('detail offers add site when empty and an edit action for every site with escaped content', () => {
+    configure();
+    const links = { index: '/admin/customers', edit: '/admin/customers/7/edit', destroy: '/admin/customers/7', createSite: '/admin/customers/7/sites/create' };
+    const empty = ShowCustomer({ customer: { ...customer, created_at: null, sites_count: 0, sites: [] }, links });
+    assert.equal(findElement(empty, element => element.props.children === 'Tambah Site').props.href, links.createSite);
+    assert.ok(renderToStaticMarkup(empty).includes('colSpan="5"'));
+    assert.ok(renderToStaticMarkup(empty).includes('Belum ada site untuk customer ini.'));
+
+    const dangerous = '<script>alert(1)</script>';
+    const sites = [
+        { ...site, site_name: dangerous, address: dangerous, pic_name: dangerous, pic_phone: dangerous, links: { edit: '/admin/customers/7/sites/3/edit' } },
+        { ...site, id: 4, pic_name: null, pic_phone: null, links: { edit: '/admin/customers/7/sites/4/edit' } },
+    ];
+    const tree = ShowCustomer({ customer: { ...customer, created_at: null, sites_count: 2, sites }, links });
+    const html = renderToStaticMarkup(tree);
+    for (const record of sites) {
+        assert.equal(findElement(tree, element => element.props['aria-label'] === `Edit site ${record.site_name}`).props.href, record.links.edit);
+    }
+    assert.ok(!html.includes(dangerous));
+    assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+    assert.ok(html.includes('—'));
+
+    configure();
+    const form = CustomerSiteForm({ ...siteFormProps, customer: { ...customer, name: dangerous }, site: sites[0] });
+    const formHtml = renderToStaticMarkup(form);
+    assert.ok(!formHtml.includes(dangerous));
+    assert.ok(formHtml.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
 });
 
 test('index retains search and pagination while providing actions for each customer', () => {
