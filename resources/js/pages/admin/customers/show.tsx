@@ -6,12 +6,12 @@ import { buttonVariants } from '@/components/ui/button';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { dateLabel } from '@/lib/presentation';
 import { cn } from '@/lib/utils';
-import type { CustomerRecord } from '@/types';
+import type { CustomerRecord, CustomerSiteRecord } from '@/types';
 
-type Site = { id: number; site_name: string; address: string; pic_name: string | null; pic_phone: string | null };
+type Site = CustomerSiteRecord & { links: { edit: string } };
 type Props = {
     customer: CustomerRecord & { created_at: string | null; sites_count: number; sites: Site[] };
-    links: { index: string; edit: string; destroy: string };
+    links: { index: string; edit: string; destroy: string; createSite: string };
 };
 
 export default function ShowCustomer({ customer, links }: Props) {
@@ -44,19 +44,25 @@ export default function ShowCustomer({ customer, links }: Props) {
                 </dl>
             </section>
             <section className="flex flex-col gap-4" aria-labelledby="customer-sites-title">
-                <h2 id="customer-sites-title" className="section-title">Site Customer</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 id="customer-sites-title" className="section-title">Site Customer</h2>
+                    <Link href={links.createSite} className={cn(buttonVariants(), 'h-10 px-4 hover:bg-primary-hover')}>Tambah Site</Link>
+                </div>
                 <div className="table-shell">
                     <table className="soft-table">
-                        <thead><tr><th>Nama Site</th><th>Alamat</th><th>PIC</th><th>Telepon PIC</th></tr></thead>
+                        <thead><tr><th>Nama Site</th><th>Alamat</th><th>PIC</th><th>Telepon PIC</th><th>Aksi</th></tr></thead>
                         <tbody>
                             {customer.sites.length ? customer.sites.map((site) => (
                                 <tr key={site.id}>
-                                    <td className="font-medium">{site.site_name}</td>
-                                    <td className="whitespace-pre-line">{site.address}</td>
-                                    <td>{site.pic_name ?? '—'}</td>
-                                    <td>{site.pic_phone ?? '—'}</td>
+                                    <td className="max-w-xs font-medium break-words">{site.site_name}</td>
+                                    <td className="max-w-sm whitespace-pre-line break-words">{site.address}</td>
+                                    <td className="max-w-xs break-words">{site.pic_name ?? '—'}</td>
+                                    <td className="max-w-xs break-words">{site.pic_phone ?? '—'}</td>
+                                    <td>
+                                        <Link href={site.links.edit} aria-label={`Edit site ${site.site_name}`} className={cn(buttonVariants({ variant: 'outline' }), 'h-9')}>Edit</Link>
+                                    </td>
                                 </tr>
-                            )) : <tr><td colSpan={4} className="empty-state">Belum ada site untuk customer ini.</td></tr>}
+                            )) : <tr><td colSpan={5} className="empty-state">Belum ada site untuk customer ini.</td></tr>}
                         </tbody>
                     </table>
                 </div>

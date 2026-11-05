@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerSiteController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
@@ -93,5 +94,19 @@ Route::middleware('auth')->group(function () {
 
             Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])
                 ->name('customers.destroy');
+
+            Route::get('/customers/{customer}/sites/create', [CustomerSiteController::class, 'create'])
+                ->name('customers.sites.create');
+
+            Route::post('/customers/{customer}/sites', [CustomerSiteController::class, 'store'])
+                ->name('customers.sites.store');
+
+            Route::get('/customers/{customer}/sites/{site}/edit', [CustomerSiteController::class, 'edit'])
+                ->scopeBindings()
+                ->name('customers.sites.edit');
+
+            Route::patch('/customers/{customer}/sites/{site}', [CustomerSiteController::class, 'update'])
+                ->scopeBindings()
+                ->name('customers.sites.update');
         });
 });
