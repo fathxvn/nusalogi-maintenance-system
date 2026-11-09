@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -77,7 +78,7 @@ class HandleInertiaRequests extends Middleware
 
         $items = [
             ['id' => 'dashboard', 'label' => 'Dashboard', 'route' => 'dashboard'],
-            ['id' => 'work-orders', 'label' => 'Work Order', 'route' => null],
+            ['id' => 'work-orders', 'label' => 'Work Order', 'route' => $user->hasAnyRole(User::ROLES) ? 'work-orders.index' : null],
             ['id' => 'customers', 'label' => 'Customer', 'route' => $user->hasRole('admin') ? 'admin.customers.index' : null],
             ['id' => 'assets', 'label' => 'Asset', 'route' => $user->hasRole('admin') ? 'admin.assets.index' : null],
             ['id' => 'invoices', 'label' => 'Invoice', 'route' => null],
@@ -114,6 +115,7 @@ class HandleInertiaRequests extends Middleware
                     'admin.customers.index',
                     'admin.assets.index',
                     'migration.test',
+                    'work-orders.index',
                 ], true),
             ];
         }, $items);

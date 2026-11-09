@@ -77,11 +77,14 @@ class AuthenticatedLayoutTest extends TestCase
         $response = $this->actingAs($user)->get(route('migration.test'))->assertOk();
         $items = collect($response->inertiaProps('navigation'))->keyBy('id');
 
-        foreach (['work-orders', 'customers', 'assets', 'invoices'] as $id) {
+        foreach (['customers', 'assets', 'invoices'] as $id) {
             $this->assertNull($items[$id]['href']);
             $this->assertFalse($items[$id]['active']);
         }
 
+        $this->assertSame(route('work-orders.index'), $items['work-orders']['href']);
+        $this->assertFalse($items['work-orders']['active']);
+        $this->assertTrue($items['work-orders']['inertia']);
         $this->assertSame(route('migration.test'), $items['preview']['href']);
         $this->assertTrue($items['preview']['inertia']);
         $this->assertSame(['preview'], $items->filter(fn (array $item): bool => $item['active'])->keys()->all());
