@@ -46,6 +46,24 @@ export type Paginated<T> = {
     next_page_url: string | null;
 };
 
+export type WorkOrderSiteOption = {
+    id: number;
+    site_name: string;
+    customer_name: string | null;
+    assets: { id: number; asset_code: string; category: string }[];
+};
+
+export type WorkOrderFormData = {
+    customer_site_id: string;
+    title: string;
+    description: string;
+    service_type: string;
+    category: string;
+    priority: string;
+    scheduled_at: string;
+    asset_ids: number[];
+};
+
 export type CustomerRecord = {
     id: number;
     name: string;

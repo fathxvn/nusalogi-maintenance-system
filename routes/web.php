@@ -31,6 +31,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:admin,koordinator,teknisi')
         ->name('work-orders.index');
 
+    Route::middleware('role:koordinator')->group(function () {
+        Route::get('/work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
+        Route::post('/work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
+    });
+
     Route::get('/migration-test', function (Request $request) {
         return Inertia::render('migration-test', [
             'user' => [
