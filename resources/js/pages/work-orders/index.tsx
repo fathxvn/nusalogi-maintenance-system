@@ -21,18 +21,26 @@ type WorkOrder = {
 
 type Props = {
     workOrders: Paginated<WorkOrder>;
+    links: { create: string | null };
 };
 
-export default function WorkOrderIndex({ workOrders }: Props) {
+export default function WorkOrderIndex({ workOrders, links }: Props) {
     return (
         <>
-            <section className="panel">
-                <h2 className="section-title">
-                    Daftar Work Order
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Total {workOrders.total} pekerjaan
-                </p>
+            <section className="panel flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 className="section-title">
+                        Daftar Work Order
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Total {workOrders.total} pekerjaan
+                    </p>
+                </div>
+                {links.create && (
+                    <Link href={links.create} className={buttonVariants()}>
+                        Tambah Work Order
+                    </Link>
+                )}
             </section>
 
             <div className="table-shell">

@@ -15,7 +15,7 @@ const workOrder = {
 };
 
 test('work order listing renders table headings, row data, technicians and its authenticated layout', () => {
-    const tree = WorkOrderIndex({ workOrders: { ...emptyPage, data: [workOrder], total: 1 } });
+    const tree = WorkOrderIndex({ links: { create: null }, workOrders: { ...emptyPage, data: [workOrder], total: 1 } });
     const html = renderToStaticMarkup(tree);
     for (const text of ['Nomor WO', 'Pekerjaan', 'Customer / Site', 'Teknisi', 'Prioritas', 'Status',
         'WO-001', 'Repair camera', 'PT Alpha', 'Office', 'maintenance', 'medium', 'assigned', 'Teknisi Satu, Teknisi Dua', 'Total 1 pekerjaan']) {
@@ -27,7 +27,7 @@ test('work order listing renders table headings, row data, technicians and its a
 });
 
 test('empty listing spans all columns and has no pagination links', () => {
-    const tree = WorkOrderIndex({ workOrders: emptyPage });
+    const tree = WorkOrderIndex({ links: { create: null }, workOrders: emptyPage });
     const html = renderToStaticMarkup(tree);
     assert.ok(html.includes('Belum ada Work Order.'));
     assert.ok(html.includes('Total 0 pekerjaan'));
@@ -39,7 +39,7 @@ test('empty listing spans all columns and has no pagination links', () => {
 
 test('listing handles nullable relationships, missing schedule, no technicians and unexpected status values', () => {
     const record = { ...workOrder, customer: null, site: null, technicians: [], priority: 'legacy_priority', status: 'legacy_status' };
-    const html = renderToStaticMarkup(WorkOrderIndex({ workOrders: { ...emptyPage, data: [record] } }));
+    const html = renderToStaticMarkup(WorkOrderIndex({ links: { create: null }, workOrders: { ...emptyPage, data: [record] } }));
     assert.equal(html.split('—').length - 1, 2);
     for (const text of ['Belum ditugaskan', 'legacy_priority', 'legacy_status']) {
         assert.ok(html.includes(text));
@@ -51,15 +51,15 @@ test('listing handles nullable relationships, missing schedule, no technicians a
 test('pagination uses supplied URLs as Inertia links on first middle and last pages', () => {
     const previous = '/work-orders?page=1';
     const next = '/work-orders?page=3';
-    const tree = WorkOrderIndex({ workOrders: { ...emptyPage, current_page: 2, last_page: 3, prev_page_url: previous, next_page_url: next } });
+    const tree = WorkOrderIndex({ links: { create: null }, workOrders: { ...emptyPage, current_page: 2, last_page: 3, prev_page_url: previous, next_page_url: next } });
     for (const [label, url] of [['Sebelumnya', previous], ['Berikutnya', next]]) {
         const link = findElement(tree, element => element.props.children === label);
         assert.equal(typeof link.type, 'function');
         assert.equal(link.props.href, url);
     }
-    const first = WorkOrderIndex({ workOrders: { ...emptyPage, last_page: 3, next_page_url: '/work-orders?page=2' } });
+    const first = WorkOrderIndex({ links: { create: null }, workOrders: { ...emptyPage, last_page: 3, next_page_url: '/work-orders?page=2' } });
     assert.equal(findElement(first, element => element.props.children === 'Sebelumnya'), undefined);
-    const last = WorkOrderIndex({ workOrders: { ...emptyPage, current_page: 3, last_page: 3, prev_page_url: '/work-orders?page=2' } });
+    const last = WorkOrderIndex({ links: { create: null }, workOrders: { ...emptyPage, current_page: 3, last_page: 3, prev_page_url: '/work-orders?page=2' } });
     assert.equal(findElement(last, element => element.props.children === 'Berikutnya'), undefined);
 });
 
@@ -67,11 +67,11 @@ test('all free text is escaped and long work order titles are retained', () => {
     const dangerous = '<script>alert(1)</script>';
     const record = { ...workOrder, number: dangerous, title: dangerous, customer: dangerous, site: dangerous,
         service_type: dangerous, priority: dangerous, status: dangerous, technicians: [dangerous] };
-    const html = renderToStaticMarkup(WorkOrderIndex({ workOrders: { ...emptyPage, data: [record] } }));
+    const html = renderToStaticMarkup(WorkOrderIndex({ links: { create: null }, workOrders: { ...emptyPage, data: [record] } }));
     assert.ok(!html.includes(dangerous));
     assert.equal(html.split('&lt;script&gt;alert(1)&lt;/script&gt;').length - 1, 8);
     const longTitle = 'Maintenance '.repeat(200);
-    const longHtml = renderToStaticMarkup(WorkOrderIndex({ workOrders: { ...emptyPage, data: [{ ...workOrder, title: longTitle }] } }));
+    const longHtml = renderToStaticMarkup(WorkOrderIndex({ links: { create: null }, workOrders: { ...emptyPage, data: [{ ...workOrder, title: longTitle }] } }));
     assert.ok(longHtml.includes(longTitle));
 });
 
