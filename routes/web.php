@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WorkOrderAssignmentController;
 use App\Http\Controllers\WorkOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,16 @@ Route::middleware('auth')->group(function () {
         ->name('work-orders.index');
 
     Route::middleware('role:koordinator')->group(function () {
+        Route::get(
+            '/work-orders/{workOrder}/assign',
+            [WorkOrderAssignmentController::class, 'edit']
+        )->name('work-orders.assignment.edit');
+
+        Route::patch(
+            '/work-orders/{workOrder}/assignment',
+            [WorkOrderAssignmentController::class, 'update']
+        )->name('work-orders.assignment.update');
+
         Route::get('/work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
         Route::post('/work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
     });

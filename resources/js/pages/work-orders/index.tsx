@@ -22,9 +22,12 @@ type WorkOrder = {
 type Props = {
     workOrders: Paginated<WorkOrder>;
     links: { create: string | null };
+    assignmentLinks?: Record<number, string>;
 };
 
-export default function WorkOrderIndex({ workOrders, links }: Props) {
+export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {} }: Props) {
+    const hasAssignmentActions = Object.keys(assignmentLinks).length > 0;
+
     return (
         <>
             <section className="panel flex flex-wrap items-center justify-between gap-4">
@@ -53,12 +56,13 @@ export default function WorkOrderIndex({ workOrders, links }: Props) {
                             <th>Teknisi</th>
                             <th>Prioritas</th>
                             <th>Status</th>
+                            {hasAssignmentActions && <th scope="col">Aksi</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {workOrders.data.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="empty-state">
+                                <td colSpan={hasAssignmentActions ? 7 : 6} className="empty-state">
                                     Belum ada Work Order.
                                 </td>
                             </tr>
@@ -85,6 +89,19 @@ export default function WorkOrderIndex({ workOrders, links }: Props) {
                                     </td>
                                     <td>{wo.priority}</td>
                                     <td>{wo.status}</td>
+                                    {hasAssignmentActions && (
+                                        <td>
+                                            {assignmentLinks[wo.id] ? (
+                                                <Link
+                                                    href={assignmentLinks[wo.id]}
+                                                    aria-label={`Tugaskan teknisi untuk ${wo.number}`}
+                                                    className={buttonVariants({ variant: 'outline' })}
+                                                >
+                                                    Tugaskan Teknisi
+                                                </Link>
+                                            ) : '—'}
+                                        </td>
+                                    )}
                                 </tr>
                             ))
                         )}
