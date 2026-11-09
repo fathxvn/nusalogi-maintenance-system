@@ -26,7 +26,7 @@ class WorkOrderStatusService
             $actor,
             $toStatus,
             $notes
-        ) {
+        ): WorkOrder {
             $wo = WorkOrder::query()
                 ->lockForUpdate()
                 ->findOrFail($workOrderId);
@@ -39,25 +39,37 @@ class WorkOrderStatusService
                 ]);
             }
 
-            // Aturan sementara selama role belum diimplementasikan.
             if ($toStatus === 'assigned') {
-                if ((int) $wo->created_by !== (int) $actor->id) {
+                $coordinator = User::query()->lockForUpdate()->find($actor->id);
+
+                if (! $coordinator || ! $coordinator->hasRole('koordinator') || ! $coordinator->isActive() || ! $coordinator->isApproved()) {
                     throw new AuthorizationException(
-                        'Hanya pembuat WO yang boleh melakukan penugasan.'
+                        'Hanya Koordinator yang boleh melakukan penugasan.'
                     );
                 }
 
-                if (! $wo->technicians()->exists()) {
+                $technicians = $wo->technicians()->orderBy('users.id')->lockForUpdate()
+                    ->get(['users.id', 'role', 'is_active', 'approval_status']);
+
+                if ($technicians->isEmpty()) {
                     throw ValidationException::withMessages([
                         'technicians' => 'WO belum memiliki teknisi.',
+                    ]);
+                }
+
+                if ($technicians->contains(fn (User $technician): bool => ! $technician->hasRole('teknisi') || ! $technician->isActive() || ! $technician->isApproved()
+                )) {
+                    throw ValidationException::withMessages([
+                        'technicians' => 'Pilih teknisi yang aktif dan sudah disetujui.',
                     ]);
                 }
             }
 
             if ($toStatus === 'in_progress') {
-                $isAssigned = $wo->technicians()
-                    ->where('users.id', $actor->id)
-                    ->exists();
+                $technician = User::query()->lockForUpdate()->find($actor->id);
+                $isAssigned = $technician && $technician->hasRole('teknisi')
+                    && $technician->isActive() && $technician->isApproved()
+                    && $wo->technicians()->where('users.id', $technician->id)->exists();
 
                 if (! $isAssigned) {
                     throw new AuthorizationException(
@@ -79,6 +91,6 @@ class WorkOrderStatusService
             ]);
 
             return $wo->refresh();
-        });
+        }, 3);
     }
 }
