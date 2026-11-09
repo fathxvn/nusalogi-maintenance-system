@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WorkOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -25,6 +26,10 @@ Route::middleware('guest:web')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
+
+    Route::get('/work-orders', [WorkOrderController::class, 'index'])
+        ->middleware('role:admin,koordinator,teknisi')
+        ->name('work-orders.index');
 
     Route::get('/migration-test', function (Request $request) {
         return Inertia::render('migration-test', [
