@@ -106,6 +106,16 @@ class WorkOrder extends Model
         return $this->hasMany(ServiceReport::class);
     }
 
+    public function scopeItems(): HasMany
+    {
+        return $this->hasMany(WorkOrderScopeItem::class);
+    }
+
+    public function ticket(): BelongsTo
+    {
+        return $this->belongsTo(ServiceTicket::class, 'ticket_id');
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);

@@ -7,6 +7,8 @@ import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import type { WorkOrderFormData, WorkOrderSiteOption } from '@/types';
 
 type Props = {
+    m1?: { command_key: string; ticket_id: number | null; ticket_version: number | null; site_id: number | null; ticket_number: string | null } | null;
+    m1CreateUrl?: string;
     sites: WorkOrderSiteOption[];
     serviceTypes: Record<string, string>;
     priorities: Record<string, string>;
@@ -14,15 +16,24 @@ type Props = {
     links: { index: string; store: string };
 };
 
-export default function CreateWorkOrder({ sites, serviceTypes, priorities, scheduleTimezone, links }: Props) {
+export default function CreateWorkOrder({ sites, serviceTypes, priorities, scheduleTimezone, links, m1, m1CreateUrl }: Props) {
     const form = useForm<WorkOrderFormData>({
-        customer_site_id: '', title: '', description: '', service_type: '',
+        customer_site_id: m1?.site_id?.toString() ?? '', title: '', description: '', service_type: '',
         category: '', priority: 'medium', scheduled_at: '', asset_ids: [],
+        ...(m1 ? {
+            command_key: m1.command_key,
+            origin_kind: m1.ticket_id ? 'ticket' as const : 'manual' as const,
+            ticket_id: m1.ticket_id,
+            expected_ticket_version: m1.ticket_version,
+            manual_reason: '',
+            initial_scope: { description: '', acceptance_criteria: '' },
+        } : {}),
     });
     const site = sites.find((option) => option.id.toString() === form.data.customer_site_id);
     const assetError = Object.entries(form.errors)
         .filter(([field]) => field === 'asset_ids' || field.startsWith('asset_ids.'))
         .map(([, error]) => error).join(' ');
+    const scopeErrors = form.errors as Record<string, string | undefined>;
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -37,9 +48,60 @@ export default function CreateWorkOrder({ sites, serviceTypes, priorities, sched
     return (
         <form onSubmit={submit} aria-label="Tambah Work Order" className="panel flex w-full max-w-3xl flex-col gap-5">
             <p className="text-sm text-muted-foreground">Kolom bertanda * wajib diisi.</p>
+            {!m1 && m1CreateUrl && (
+                <Link href={m1CreateUrl} className="underline">Buat WO manual dengan scope dan alasan</Link>
+            )}
+            {m1 && (
+                <section className="flex flex-col gap-4" aria-label="Asal dan scope pekerjaan">
+                    <p>{m1.ticket_id ? `Asal ticket: ${m1.ticket_number}` : 'Asal: manual'}</p>
+                    {!m1.ticket_id && (
+                        <FormField id="manual-reason" label="Alasan manual *" error={form.errors.manual_reason}>
+                            <textarea
+                                id="manual-reason" name="manual_reason" className="field-control"
+                                required maxLength={10000} value={form.data.manual_reason ?? ''}
+                                onChange={event => form.setData('manual_reason', event.target.value)}
+                            />
+                        </FormField>
+                    )}
+                    <FormField
+                        id="scope-description" label="Hasil kerja / scope awal *"
+                        error={scopeErrors['initial_scope.description']}
+                    >
+                        <textarea
+                            id="scope-description" name="initial_scope.description"
+                            required maxLength={10000} className="field-control"
+                            value={form.data.initial_scope?.description ?? ''}
+                            onChange={event => form.setData('initial_scope', {
+                                description: event.target.value,
+                                acceptance_criteria: form.data.initial_scope?.acceptance_criteria ?? '',
+                            })}
+                        />
+                    </FormField>
+                    <FormField
+                        id="scope-criteria" label="Kriteria penerimaan *"
+                        error={scopeErrors['initial_scope.acceptance_criteria']}
+                    >
+                        <textarea
+                            id="scope-criteria" name="initial_scope.acceptance_criteria"
+                            required maxLength={10000} className="field-control"
+                            value={form.data.initial_scope?.acceptance_criteria ?? ''}
+                            onChange={event => form.setData('initial_scope', {
+                                description: form.data.initial_scope?.description ?? '',
+                                acceptance_criteria: event.target.value,
+                            })}
+                        />
+                    </FormField>
+                    {['command_key', 'ticket_id', 'expected_ticket_version', 'origin_kind'].map(field => (
+                        scopeErrors[field] && (
+                            <p key={field} role="alert">{scopeErrors[field]} · Muat ulang formulir bila versi berubah.</p>
+                        )
+                    ))}
+                </section>
+            )}
             <FormField id="work-order-site" label="Customer dan Site *" error={form.errors.customer_site_id}>
                 <select
                     id="work-order-site" name="customer_site_id" className="field-control" required
+                    disabled={!!m1?.ticket_id}
                     value={form.data.customer_site_id}
                     aria-invalid={!!form.errors.customer_site_id}
                     aria-describedby={form.errors.customer_site_id ? 'work-order-site-error' : undefined}

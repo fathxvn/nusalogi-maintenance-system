@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ServiceTicketController;
 use App\Http\Controllers\WorkOrderAssignmentController;
 use App\Http\Controllers\WorkOrderController;
 use Illuminate\Http\Request;
@@ -25,6 +26,14 @@ Route::middleware('guest:web')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::middleware('role:admin,koordinator')->group(function (): void {
+        Route::get('/tickets', [ServiceTicketController::class, 'index'])->name('tickets.index');
+        Route::get('/tickets/create', [ServiceTicketController::class, 'create'])->middleware('role:admin')->name('tickets.create');
+        Route::post('/tickets', [ServiceTicketController::class, 'store'])->middleware('role:admin')->name('tickets.store');
+        Route::get('/tickets/{ticket}', [ServiceTicketController::class, 'show'])->name('tickets.show');
+        Route::post('/tickets/{ticket}/triage', [ServiceTicketController::class, 'triage'])->middleware('role:koordinator')->name('tickets.triage');
+        Route::post('/tickets/{ticket}/approve', [ServiceTicketController::class, 'approve'])->middleware('role:koordinator')->name('tickets.approve');
+    });
     Route::get('/dashboard', DashboardController::class)
         ->middleware('role:admin,koordinator,teknisi')
         ->name('dashboard');
@@ -34,6 +43,7 @@ Route::middleware('auth')->group(function () {
         ->name('work-orders.index');
 
     Route::middleware('role:koordinator')->group(function () {
+        Route::post('/work-orders/m1', [WorkOrderController::class, 'storeM1'])->name('work-orders.m1.store');
         Route::get(
             '/work-orders/{workOrder}/assign',
             [WorkOrderAssignmentController::class, 'edit']

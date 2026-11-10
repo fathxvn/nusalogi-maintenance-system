@@ -4,15 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\CustomerSite;
+use App\Models\ServiceTicket;
 use App\Models\WorkOrder;
-use Closure;
+use App\Services\CreateWorkOrderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,9 +18,6 @@ class WorkOrderController extends Controller
     private const SERVICE_TYPES = ['install' => 'Instalasi', 'maintenance' => 'Maintenance'];
 
     private const PRIORITIES = ['low' => 'Rendah', 'medium' => 'Sedang', 'high' => 'Tinggi'];
-
-    /** Provisional company numbering: WO- plus a 26-character ULID fits the unique VARCHAR(50) column. */
-    private const NUMBER_PREFIX = 'WO-';
 
     public function index(Request $request): Response
     {
@@ -73,9 +67,22 @@ class WorkOrderController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $ticket = $request->filled('ticket_id')
+            ? ServiceTicket::query()->findOrFail($request->integer('ticket_id'))
+            : null;
+        $m1 = config('m1.writer_mode') === 'm1' || $request->boolean('m1') || $ticket !== null;
+
         return Inertia::render('work-orders/create', [
+            'm1' => $m1 ? [
+                'command_key' => (string) Str::uuid(),
+                'ticket_id' => $ticket?->id,
+                'ticket_version' => $ticket?->lock_version,
+                'site_id' => $ticket?->site_id,
+                'ticket_number' => $ticket?->ticket_number,
+            ] : null,
+            'm1CreateUrl' => route('work-orders.create', ['m1' => 1]),
             'sites' => CustomerSite::query()
                 ->select(['id', 'customer_id', 'site_name'])
                 ->with(['customer:id,name', 'assets:id,customer_site_id,asset_code,category'])
@@ -89,68 +96,21 @@ class WorkOrderController extends Controller
             'serviceTypes' => self::SERVICE_TYPES,
             'priorities' => self::PRIORITIES,
             'scheduleTimezone' => config('app.timezone'),
-            'links' => ['index' => route('work-orders.index'), 'store' => route('work-orders.store')],
+            'links' => ['index' => route('work-orders.index'), 'store' => route($m1 ? 'work-orders.m1.store' : 'work-orders.store')],
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, CreateWorkOrderService $service): RedirectResponse
     {
-        $validated = $this->validatedWorkOrderData($request);
-
-        DB::transaction(function () use ($request, $validated): void {
-            $site = CustomerSite::query()->sharedLock()->find($validated['customer_site_id']);
-
-            if (! $site) {
-                throw ValidationException::withMessages(['customer_site_id' => 'Customer Site tidak tersedia.']);
-            }
-
-            $assetIds = $validated['asset_ids'] ?? [];
-            $assets = Asset::query()->whereIn('id', $assetIds)->orderBy('id')->lockForUpdate()->get(['id', 'customer_site_id']);
-
-            if ($assets->count() !== count($assetIds) || $assets->contains(
-                fn (Asset $asset): bool => (int) $asset->customer_site_id !== (int) $site->id
-            )) {
-                throw ValidationException::withMessages(['asset_ids' => 'Pilih asset yang masih tersedia di Customer Site terpilih.']);
-            }
-
-            $workOrder = new WorkOrder([
-                ...collect($validated)->except('asset_ids')->all(),
-                'wo_number' => self::NUMBER_PREFIX.Str::ulid(),
-                'created_by' => $request->user()->id,
-                'scheduled_at' => empty($validated['scheduled_at']) ? null : Carbon::createFromFormat(
-                    '!Y-m-d\TH:i', $validated['scheduled_at'], config('app.timezone')
-                ),
-            ]);
-            $workOrder->status = 'pending';
-            $workOrder->save();
-            $workOrder->assets()->attach($assets->modelKeys());
-        }, 3);
+        $service->create($request->user(), $request->all(), true);
 
         return redirect()->route('work-orders.index')->with('success', 'Work Order berhasil ditambahkan.');
     }
 
-    /**
-     * @return array{customer_site_id: int|string, title: string, description: string, service_type: string, category: string, priority: string, scheduled_at?: ?string, asset_ids?: list<int|string>}
-     */
-    private function validatedWorkOrderData(Request $request): array
+    public function storeM1(Request $request, CreateWorkOrderService $service): RedirectResponse
     {
-        return $request->validate([
-            'customer_site_id' => ['bail', 'required', 'integer', 'exists:customer_sites,id'],
-            'title' => ['bail', 'required', 'string', 'max:150', 'encoding:UTF-8'],
-            'description' => [
-                'bail', 'required', 'string', 'encoding:UTF-8',
-                static function (string $attribute, mixed $value, Closure $fail): void {
-                    if (strlen($value) > 65535) {
-                        $fail('Deskripsi maksimal 65.535 byte.');
-                    }
-                },
-            ],
-            'service_type' => ['bail', 'required', 'string', Rule::in(array_keys(self::SERVICE_TYPES))],
-            'category' => ['bail', 'required', 'string', 'max:50', 'encoding:UTF-8'],
-            'priority' => ['bail', 'required', 'string', Rule::in(array_keys(self::PRIORITIES))],
-            'scheduled_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
-            'asset_ids' => ['sometimes', 'array', 'list'],
-            'asset_ids.*' => ['bail', 'required', 'integer', 'distinct', 'exists:assets,id'],
-        ]);
+        $service->create($request->user(), $request->all());
+
+        return redirect()->route('work-orders.index')->with('success', 'Work Order berhasil ditambahkan.');
     }
 }

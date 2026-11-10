@@ -6,6 +6,7 @@ import {
     LayoutDashboard,
     PanelsTopLeft,
     Receipt,
+    Ticket,
     Users,
     type LucideIcon,
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import type { NavigationItem } from '@/types';
 
 const navigationIcons: Record<NavigationItem['id'], LucideIcon> = {
     dashboard: LayoutDashboard,
+    tickets: Ticket,
     'work-orders': ClipboardList,
     customers: Building2,
     assets: Boxes,
