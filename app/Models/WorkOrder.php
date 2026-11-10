@@ -120,4 +120,9 @@ class WorkOrder extends Model
     {
         return $this->hasMany(Invoice::class);
     }
+
+    public function visits(): HasMany
+    {
+        return $this->hasMany(WorkVisit::class);
+    }
 }
