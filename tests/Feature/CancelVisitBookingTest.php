@@ -11,14 +11,14 @@ use App\Models\WorkVisit;
 use App\Services\CancelVisitBookingService;
 use App\Services\CreateWorkOrderService;
 use App\Services\VisitSchedulingService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Tests\TestCase;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
+use Tests\TestCase;
 
 class CancelVisitBookingTest extends TestCase
 {
@@ -299,280 +299,280 @@ class CancelVisitBookingTest extends TestCase
     }
 
     #[DataProvider('unauthorizedActors')]
-public function test_cancel_rechecks_current_actor_permissions(
-    array $attributes,
-): void {
-    [$coordinator, , $visit] = $this->context();
-    $booking = $visit->bookings()->sole();
+    public function test_cancel_rechecks_current_actor_permissions(
+        array $attributes,
+    ): void {
+        [$coordinator, , $visit] = $this->context();
+        $booking = $visit->bookings()->sole();
 
-    DB::table('users')
-        ->where('id', $coordinator->id)
-        ->update($attributes);
+        DB::table('users')
+            ->where('id', $coordinator->id)
+            ->update($attributes);
 
-    $rejected = false;
+        $rejected = false;
 
-    try {
-        app(CancelVisitBookingService::class)->cancel(
-            $coordinator,
-            $booking->id,
-            $this->payload($visit, $booking),
-        );
-    } catch (AuthorizationException) {
-        $rejected = true;
-    }
+        try {
+            app(CancelVisitBookingService::class)->cancel(
+                $coordinator,
+                $booking->id,
+                $this->payload($visit, $booking),
+            );
+        } catch (AuthorizationException) {
+            $rejected = true;
+        }
 
-    $this->assertTrue($rejected);
-    $this->assertSame('confirmed', $booking->fresh()->status);
-    $this->assertSame('confirmed', $visit->fresh()->status);
-    $this->assertSame(1, $visit->fresh()->lock_version);
-    $this->assertSame(
-        0,
-        OperationHistory::query()
-            ->where('action', 'visit.booking.cancel')
-            ->count(),
-    );
-}
-
-public static function unauthorizedActors(): array
-{
-    return [
-        'admin' => [['role' => 'admin']],
-        'technician' => [['role' => 'teknisi']],
-        'missing role' => [['role' => null]],
-        'inactive' => [['is_active' => false]],
-        'pending approval' => [['approval_status' => 'pending']],
-        'rejected approval' => [['approval_status' => 'rejected']],
-    ];
-}
-
-public function test_stale_visit_version_rejects_cancellation(): void
-{
-    [$coordinator, , $visit] = $this->context();
-    $booking = $visit->bookings()->sole();
-
-    try {
-        app(CancelVisitBookingService::class)->cancel(
-            $coordinator,
-            $booking->id,
-            [
-                ...$this->payload($visit, $booking),
-                'expected_visit_version' => 0,
-            ],
-        );
-
-        $this->fail('Stale visit version must be rejected.');
-    } catch (ValidationException $exception) {
-        $this->assertSame(409, $exception->status);
+        $this->assertTrue($rejected);
+        $this->assertSame('confirmed', $booking->fresh()->status);
+        $this->assertSame('confirmed', $visit->fresh()->status);
+        $this->assertSame(1, $visit->fresh()->lock_version);
         $this->assertSame(
-            ['VISIT_VERSION_CONFLICT'],
-            $exception->errors()['expected_visit_version'],
+            0,
+            OperationHistory::query()
+                ->where('action', 'visit.booking.cancel')
+                ->count(),
         );
     }
 
-    $this->assertSame('confirmed', $booking->fresh()->status);
-    $this->assertSame(1, $visit->fresh()->lock_version);
-    $this->assertNull($booking->fresh()->ended_reason);
-}
-
-public function test_stale_booking_status_rejects_cancellation(): void
-{
-    [$coordinator, , $visit] = $this->context();
-    $booking = $visit->bookings()->sole();
-
-    try {
-        app(CancelVisitBookingService::class)->cancel(
-            $coordinator,
-            $booking->id,
-            [
-                ...$this->payload($visit, $booking),
-                'expected_booking_status' => 'in_progress',
-            ],
-        );
-
-        $this->fail('Stale booking status must be rejected.');
-    } catch (ValidationException $exception) {
-        $this->assertSame(409, $exception->status);
-        $this->assertSame(
-            ['BOOKING_STATE_CONFLICT'],
-            $exception->errors()['expected_booking_status'],
-        );
+    public static function unauthorizedActors(): array
+    {
+        return [
+            'admin' => [['role' => 'admin']],
+            'technician' => [['role' => 'teknisi']],
+            'missing role' => [['role' => null]],
+            'inactive' => [['is_active' => false]],
+            'pending approval' => [['approval_status' => 'pending']],
+            'rejected approval' => [['approval_status' => 'rejected']],
+        ];
     }
 
-    $this->assertSame('confirmed', $booking->fresh()->status);
-    $this->assertSame('confirmed', $visit->fresh()->status);
-    $this->assertSame(1, $visit->fresh()->lock_version);
-}
+    public function test_stale_visit_version_rejects_cancellation(): void
+    {
+        [$coordinator, , $visit] = $this->context();
+        $booking = $visit->bookings()->sole();
 
-public function test_same_command_replays_without_duplicate_cancellation(): void
-{
-    [$coordinator, , $visit] = $this->context();
-    $booking = $visit->bookings()->sole();
-    $payload = $this->payload($visit, $booking);
-    $service = app(CancelVisitBookingService::class);
+        try {
+            app(CancelVisitBookingService::class)->cancel(
+                $coordinator,
+                $booking->id,
+                [
+                    ...$this->payload($visit, $booking),
+                    'expected_visit_version' => 0,
+                ],
+            );
 
-    $first = $service->cancel(
-        $coordinator,
-        $booking->id,
-        $payload,
-    );
+            $this->fail('Stale visit version must be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(409, $exception->status);
+            $this->assertSame(
+                ['VISIT_VERSION_CONFLICT'],
+                $exception->errors()['expected_visit_version'],
+            );
+        }
 
-    $replay = $service->cancel(
-        $coordinator,
-        $booking->id,
-        $payload,
-    );
-
-    $this->assertSame($first->id, $replay->id);
-    $this->assertSame('cancelled', $replay->status);
-    $this->assertSame('cancelled', $visit->fresh()->status);
-    $this->assertSame(2, $visit->fresh()->lock_version);
-    $this->assertDatabaseCount('visit_bookings', 1);
-    $this->assertSame(
-        1,
-        OperationHistory::query()
-            ->where('action', 'visit.booking.cancel')
-            ->count(),
-    );
-}
-
-public function test_same_key_with_changed_reason_is_rejected(): void
-{
-    [$coordinator, , $visit] = $this->context();
-    $booking = $visit->bookings()->sole();
-    $payload = $this->payload($visit, $booking);
-    $service = app(CancelVisitBookingService::class);
-
-    $service->cancel($coordinator, $booking->id, $payload);
-
-    try {
-        $service->cancel(
-            $coordinator,
-            $booking->id,
-            [...$payload, 'reason' => 'Alasan berbeda'],
-        );
-
-        $this->fail('Changed reason must not reuse a committed key.');
-    } catch (ValidationException $exception) {
-        $this->assertSame(409, $exception->status);
-        $this->assertSame(
-            ['COMMAND_KEY_REUSED'],
-            $exception->errors()['command_key'],
-        );
+        $this->assertSame('confirmed', $booking->fresh()->status);
+        $this->assertSame(1, $visit->fresh()->lock_version);
+        $this->assertNull($booking->fresh()->ended_reason);
     }
 
-    $this->assertSame(
-        $payload['reason'],
-        $booking->fresh()->ended_reason,
-    );
-    $this->assertSame(2, $visit->fresh()->lock_version);
-    $this->assertSame(
-        1,
-        OperationHistory::query()
-            ->where('action', 'visit.booking.cancel')
-            ->count(),
-    );
-}
+    public function test_stale_booking_status_rejects_cancellation(): void
+    {
+        [$coordinator, , $visit] = $this->context();
+        $booking = $visit->bookings()->sole();
 
-public function test_coordinator_can_cancel_unstarted_booking_of_inactive_technician(): void
-{
-    [$coordinator, , $visit] = $this->context();
-    $booking = $visit->bookings()->sole();
+        try {
+            app(CancelVisitBookingService::class)->cancel(
+                $coordinator,
+                $booking->id,
+                [
+                    ...$this->payload($visit, $booking),
+                    'expected_booking_status' => 'in_progress',
+                ],
+            );
 
-    DB::table('users')
-        ->where('id', $booking->technician_id)
-        ->update(['is_active' => false]);
+            $this->fail('Stale booking status must be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(409, $exception->status);
+            $this->assertSame(
+                ['BOOKING_STATE_CONFLICT'],
+                $exception->errors()['expected_booking_status'],
+            );
+        }
 
-    $cancelled = app(CancelVisitBookingService::class)->cancel(
-        $coordinator,
-        $booking->id,
-        $this->payload($visit, $booking),
-    );
+        $this->assertSame('confirmed', $booking->fresh()->status);
+        $this->assertSame('confirmed', $visit->fresh()->status);
+        $this->assertSame(1, $visit->fresh()->lock_version);
+    }
 
-    $this->assertSame('cancelled', $cancelled->status);
-    $this->assertSame('cancelled', $visit->fresh()->status);
-    $this->assertNull($cancelled->actual_start_at);
-    $this->assertNull($cancelled->actual_end_at);
-    $this->assertDatabaseCount('work_order_technicians', 1);
+    public function test_same_command_replays_without_duplicate_cancellation(): void
+    {
+        [$coordinator, , $visit] = $this->context();
+        $booking = $visit->bookings()->sole();
+        $payload = $this->payload($visit, $booking);
+        $service = app(CancelVisitBookingService::class);
 
-    $history = OperationHistory::query()
-        ->where('action', 'visit.booking.cancel')
-        ->sole();
-
-    $this->assertFalse(
-        $history->facts['technician_eligible_at_cancel'],
-    );
-}
-
-#[DataProvider('cancellationFailurePoints')]
-public function test_failed_cancellation_rolls_back_and_allows_same_key_retry(
-    string $sqlPrefix,
-): void {
-    [$coordinator, $workOrder, $visit] = $this->context();
-    $booking = $visit->bookings()->sole();
-    $payload = $this->payload($visit, $booking);
-    $historyCount = OperationHistory::query()->count();
-    $failed = false;
-
-    DB::connection()->beforeExecuting(
-        function (string $sql) use ($sqlPrefix, &$failed): void {
-            if (! $failed && str_starts_with($sql, $sqlPrefix)) {
-                $failed = true;
-
-                throw new RuntimeException(
-                    'Simulated cancellation failure.',
-                );
-            }
-        },
-    );
-
-    $service = app(CancelVisitBookingService::class);
-
-    try {
-        $service->cancel(
+        $first = $service->cancel(
             $coordinator,
             $booking->id,
             $payload,
         );
 
-        $this->fail('Cancellation failure must abort the transaction.');
-    } catch (RuntimeException $exception) {
+        $replay = $service->cancel(
+            $coordinator,
+            $booking->id,
+            $payload,
+        );
+
+        $this->assertSame($first->id, $replay->id);
+        $this->assertSame('cancelled', $replay->status);
+        $this->assertSame('cancelled', $visit->fresh()->status);
+        $this->assertSame(2, $visit->fresh()->lock_version);
+        $this->assertDatabaseCount('visit_bookings', 1);
         $this->assertSame(
-            'Simulated cancellation failure.',
-            $exception->getMessage(),
+            1,
+            OperationHistory::query()
+                ->where('action', 'visit.booking.cancel')
+                ->count(),
         );
     }
 
-    $this->assertTrue($failed);
-    $this->assertSame('confirmed', $booking->fresh()->status);
-    $this->assertNull($booking->fresh()->ended_reason);
-    $this->assertSame('confirmed', $visit->fresh()->status);
-    $this->assertSame(1, $visit->fresh()->lock_version);
-    $this->assertSame('assigned', $workOrder->fresh()->status);
-    $this->assertDatabaseCount('visit_bookings', 1);
-    $this->assertDatabaseCount('operation_history', $historyCount);
+    public function test_same_key_with_changed_reason_is_rejected(): void
+    {
+        [$coordinator, , $visit] = $this->context();
+        $booking = $visit->bookings()->sole();
+        $payload = $this->payload($visit, $booking);
+        $service = app(CancelVisitBookingService::class);
 
-    $cancelled = $service->cancel(
-        $coordinator,
-        $booking->id,
-        $payload,
-    );
+        $service->cancel($coordinator, $booking->id, $payload);
 
-    $this->assertSame('cancelled', $cancelled->status);
-    $this->assertSame('cancelled', $visit->fresh()->status);
-    $this->assertSame(2, $visit->fresh()->lock_version);
-    $this->assertDatabaseCount('visit_bookings', 1);
-    $this->assertDatabaseCount(
-        'operation_history',
-        $historyCount + 1,
-    );
-}
+        try {
+            $service->cancel(
+                $coordinator,
+                $booking->id,
+                [...$payload, 'reason' => 'Alasan berbeda'],
+            );
 
-public static function cancellationFailurePoints(): array
-{
-    return [
-        'booking update' => ['update `visit_bookings`'],
-        'visit update' => ['update `work_visits`'],
-        'audit insert' => ['insert into `operation_history`'],
-    ];
-}
+            $this->fail('Changed reason must not reuse a committed key.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(409, $exception->status);
+            $this->assertSame(
+                ['COMMAND_KEY_REUSED'],
+                $exception->errors()['command_key'],
+            );
+        }
+
+        $this->assertSame(
+            $payload['reason'],
+            $booking->fresh()->ended_reason,
+        );
+        $this->assertSame(2, $visit->fresh()->lock_version);
+        $this->assertSame(
+            1,
+            OperationHistory::query()
+                ->where('action', 'visit.booking.cancel')
+                ->count(),
+        );
+    }
+
+    public function test_coordinator_can_cancel_unstarted_booking_of_inactive_technician(): void
+    {
+        [$coordinator, , $visit] = $this->context();
+        $booking = $visit->bookings()->sole();
+
+        DB::table('users')
+            ->where('id', $booking->technician_id)
+            ->update(['is_active' => false]);
+
+        $cancelled = app(CancelVisitBookingService::class)->cancel(
+            $coordinator,
+            $booking->id,
+            $this->payload($visit, $booking),
+        );
+
+        $this->assertSame('cancelled', $cancelled->status);
+        $this->assertSame('cancelled', $visit->fresh()->status);
+        $this->assertNull($cancelled->actual_start_at);
+        $this->assertNull($cancelled->actual_end_at);
+        $this->assertDatabaseCount('work_order_technicians', 1);
+
+        $history = OperationHistory::query()
+            ->where('action', 'visit.booking.cancel')
+            ->sole();
+
+        $this->assertFalse(
+            $history->facts['technician_eligible_at_cancel'],
+        );
+    }
+
+    #[DataProvider('cancellationFailurePoints')]
+    public function test_failed_cancellation_rolls_back_and_allows_same_key_retry(
+        string $sqlPrefix,
+    ): void {
+        [$coordinator, $workOrder, $visit] = $this->context();
+        $booking = $visit->bookings()->sole();
+        $payload = $this->payload($visit, $booking);
+        $historyCount = OperationHistory::query()->count();
+        $failed = false;
+
+        DB::connection()->beforeExecuting(
+            function (string $sql) use ($sqlPrefix, &$failed): void {
+                if (! $failed && str_starts_with($sql, $sqlPrefix)) {
+                    $failed = true;
+
+                    throw new RuntimeException(
+                        'Simulated cancellation failure.',
+                    );
+                }
+            },
+        );
+
+        $service = app(CancelVisitBookingService::class);
+
+        try {
+            $service->cancel(
+                $coordinator,
+                $booking->id,
+                $payload,
+            );
+
+            $this->fail('Cancellation failure must abort the transaction.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'Simulated cancellation failure.',
+                $exception->getMessage(),
+            );
+        }
+
+        $this->assertTrue($failed);
+        $this->assertSame('confirmed', $booking->fresh()->status);
+        $this->assertNull($booking->fresh()->ended_reason);
+        $this->assertSame('confirmed', $visit->fresh()->status);
+        $this->assertSame(1, $visit->fresh()->lock_version);
+        $this->assertSame('assigned', $workOrder->fresh()->status);
+        $this->assertDatabaseCount('visit_bookings', 1);
+        $this->assertDatabaseCount('operation_history', $historyCount);
+
+        $cancelled = $service->cancel(
+            $coordinator,
+            $booking->id,
+            $payload,
+        );
+
+        $this->assertSame('cancelled', $cancelled->status);
+        $this->assertSame('cancelled', $visit->fresh()->status);
+        $this->assertSame(2, $visit->fresh()->lock_version);
+        $this->assertDatabaseCount('visit_bookings', 1);
+        $this->assertDatabaseCount(
+            'operation_history',
+            $historyCount + 1,
+        );
+    }
+
+    public static function cancellationFailurePoints(): array
+    {
+        return [
+            'booking update' => ['update `visit_bookings`'],
+            'visit update' => ['update `work_visits`'],
+            'audit insert' => ['insert into `operation_history`'],
+        ];
+    }
 }

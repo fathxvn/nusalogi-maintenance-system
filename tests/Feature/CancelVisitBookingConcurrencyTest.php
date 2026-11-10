@@ -157,7 +157,7 @@ class CancelVisitBookingConcurrencyTest extends TestCase
     }
 
     /**
-     * @param array<string, array<string, mixed>> $commands
+     * @param  array<string, array<string, mixed>>  $commands
      * @return array<string, array<string, mixed>>
      */
     private function race(

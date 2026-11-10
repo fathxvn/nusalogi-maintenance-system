@@ -107,7 +107,7 @@ class VisitBookingConcurrencyTest extends TestCase
     }
 
     /**
-     *@param list<array{actor_id: int, visit_id: int, technician_ids?: list<int>}> $commands
+     * @param  list<array{actor_id: int, visit_id: int, technician_ids?: list<int>}>  $commands
      * @return list<array<string, mixed>>
      */
     private function race(User $technician, array $commands): array
@@ -339,149 +339,149 @@ class VisitBookingConcurrencyTest extends TestCase
     }
 
     public function test_concurrent_adjacent_visits_can_both_be_confirmed(): void
-{
-    $technician = User::factory()->create(['role' => 'teknisi']);
+    {
+        $technician = User::factory()->create(['role' => 'teknisi']);
 
-    [$firstCoordinator, $firstVisit] = $this->context(
-        $technician,
-        '2026-11-12T09:00+07:00',
-        '2026-11-12T11:00+07:00',
-    );
-
-    [$secondCoordinator, $secondVisit] = $this->context(
-        $technician,
-        '2026-11-12T11:00+07:00',
-        '2026-11-12T13:00+07:00',
-    );
-
-    $results = $this->race($technician, [
-        [
-            'actor_id' => $firstCoordinator->id,
-            'visit_id' => $firstVisit->id,
-        ],
-        [
-            'actor_id' => $secondCoordinator->id,
-            'visit_id' => $secondVisit->id,
-        ],
-    ]);
-
-    foreach ($results as $result) {
-        $this->assertTrue(
-            $result['ok'],
-            json_encode($result, JSON_THROW_ON_ERROR),
+        [$firstCoordinator, $firstVisit] = $this->context(
+            $technician,
+            '2026-11-12T09:00+07:00',
+            '2026-11-12T11:00+07:00',
         );
-        $this->assertSame(1, $result['lock_version']);
-    }
 
-    $this->assertNotSame(
-        $results[0]['visit_id'],
-        $results[1]['visit_id'],
-    );
+        [$secondCoordinator, $secondVisit] = $this->context(
+            $technician,
+            '2026-11-12T11:00+07:00',
+            '2026-11-12T13:00+07:00',
+        );
 
-    $this->assertSame('confirmed', $firstVisit->fresh()->status);
-    $this->assertSame('confirmed', $secondVisit->fresh()->status);
-
-    $this->assertSame(
-        $firstVisit->fresh()->ends_at->getTimestamp(),
-        $secondVisit->fresh()->starts_at->getTimestamp(),
-    );
-
-    $this->assertDatabaseCount('visit_bookings', 2);
-    $this->assertSame(
-        2,
-        OperationHistory::query()
-            ->where('action', 'visit.confirm')
-            ->count(),
-    );
-}
-
-public function test_concurrent_groups_with_reversed_input_have_one_atomic_winner(): void
-{
-    $firstTechnician = User::factory()->create(['role' => 'teknisi']);
-    $secondTechnician = User::factory()->create(['role' => 'teknisi']);
-
-    [$firstCoordinator, $firstVisit] = $this->context(
-        $firstTechnician,
-        '2026-11-12T09:00+07:00',
-        '2026-11-12T11:00+07:00',
-    );
-
-    [$secondCoordinator, $secondVisit] = $this->context(
-        $firstTechnician,
-        '2026-11-12T10:00+07:00',
-        '2026-11-12T12:00+07:00',
-    );
-
-    foreach ([$firstVisit, $secondVisit] as $visit) {
-        $visit->workOrder->technicians()->attach($secondTechnician->id, [
-            'assigned_at' => now(),
+        $results = $this->race($technician, [
+            [
+                'actor_id' => $firstCoordinator->id,
+                'visit_id' => $firstVisit->id,
+            ],
+            [
+                'actor_id' => $secondCoordinator->id,
+                'visit_id' => $secondVisit->id,
+            ],
         ]);
+
+        foreach ($results as $result) {
+            $this->assertTrue(
+                $result['ok'],
+                json_encode($result, JSON_THROW_ON_ERROR),
+            );
+            $this->assertSame(1, $result['lock_version']);
+        }
+
+        $this->assertNotSame(
+            $results[0]['visit_id'],
+            $results[1]['visit_id'],
+        );
+
+        $this->assertSame('confirmed', $firstVisit->fresh()->status);
+        $this->assertSame('confirmed', $secondVisit->fresh()->status);
+
+        $this->assertSame(
+            $firstVisit->fresh()->ends_at->getTimestamp(),
+            $secondVisit->fresh()->starts_at->getTimestamp(),
+        );
+
+        $this->assertDatabaseCount('visit_bookings', 2);
+        $this->assertSame(
+            2,
+            OperationHistory::query()
+                ->where('action', 'visit.confirm')
+                ->count(),
+        );
     }
 
-    $ids = [$firstTechnician->id, $secondTechnician->id];
+    public function test_concurrent_groups_with_reversed_input_have_one_atomic_winner(): void
+    {
+        $firstTechnician = User::factory()->create(['role' => 'teknisi']);
+        $secondTechnician = User::factory()->create(['role' => 'teknisi']);
 
-    $results = $this->race($firstTechnician, [
-        [
-            'actor_id' => $firstCoordinator->id,
-            'visit_id' => $firstVisit->id,
-            'technician_ids' => $ids,
-        ],
-        [
-            'actor_id' => $secondCoordinator->id,
-            'visit_id' => $secondVisit->id,
-            'technician_ids' => array_reverse($ids),
-        ],
-    ]);
+        [$firstCoordinator, $firstVisit] = $this->context(
+            $firstTechnician,
+            '2026-11-12T09:00+07:00',
+            '2026-11-12T11:00+07:00',
+        );
 
-    $successes = array_values(array_filter(
-        $results,
-        fn (array $result): bool => $result['ok'],
-    ));
+        [$secondCoordinator, $secondVisit] = $this->context(
+            $firstTechnician,
+            '2026-11-12T10:00+07:00',
+            '2026-11-12T12:00+07:00',
+        );
 
-    $failures = array_values(array_filter(
-        $results,
-        fn (array $result): bool => ! $result['ok'],
-    ));
+        foreach ([$firstVisit, $secondVisit] as $visit) {
+            $visit->workOrder->technicians()->attach($secondTechnician->id, [
+                'assigned_at' => now(),
+            ]);
+        }
 
-    $this->assertCount(1, $successes);
-    $this->assertCount(1, $failures);
-    $this->assertSame(409, $failures[0]['status']);
-    $this->assertSame(
-        ['BOOKING_TIME_CONFLICT'],
-        $failures[0]['errors']['technician_ids'],
-    );
+        $ids = [$firstTechnician->id, $secondTechnician->id];
 
-    $winner = WorkVisit::query()->findOrFail(
-        $successes[0]['visit_id'],
-    );
+        $results = $this->race($firstTechnician, [
+            [
+                'actor_id' => $firstCoordinator->id,
+                'visit_id' => $firstVisit->id,
+                'technician_ids' => $ids,
+            ],
+            [
+                'actor_id' => $secondCoordinator->id,
+                'visit_id' => $secondVisit->id,
+                'technician_ids' => array_reverse($ids),
+            ],
+        ]);
 
-    $loserId = $winner->id === $firstVisit->id
-        ? $secondVisit->id
-        : $firstVisit->id;
+        $successes = array_values(array_filter(
+            $results,
+            fn (array $result): bool => $result['ok'],
+        ));
 
-    $loser = WorkVisit::query()->findOrFail($loserId);
+        $failures = array_values(array_filter(
+            $results,
+            fn (array $result): bool => ! $result['ok'],
+        ));
 
-    $this->assertSame('confirmed', $winner->status);
-    $this->assertSame(1, $winner->lock_version);
-    $this->assertSame(
-        $ids,
-        $winner->bookings()
-            ->orderBy('technician_id')
-            ->pluck('technician_id')
-            ->all(),
-    );
+        $this->assertCount(1, $successes);
+        $this->assertCount(1, $failures);
+        $this->assertSame(409, $failures[0]['status']);
+        $this->assertSame(
+            ['BOOKING_TIME_CONFLICT'],
+            $failures[0]['errors']['technician_ids'],
+        );
 
-    $this->assertSame('draft', $loser->status);
-    $this->assertSame(0, $loser->lock_version);
-    $this->assertSame(0, $loser->bookings()->count());
+        $winner = WorkVisit::query()->findOrFail(
+            $successes[0]['visit_id'],
+        );
 
-    $this->assertDatabaseCount('visit_bookings', 2);
-    $this->assertDatabaseCount('work_order_technicians', 4);
-    $this->assertSame(
-        1,
-        OperationHistory::query()
-            ->where('action', 'visit.confirm')
-            ->count(),
-    );
-}
+        $loserId = $winner->id === $firstVisit->id
+            ? $secondVisit->id
+            : $firstVisit->id;
+
+        $loser = WorkVisit::query()->findOrFail($loserId);
+
+        $this->assertSame('confirmed', $winner->status);
+        $this->assertSame(1, $winner->lock_version);
+        $this->assertSame(
+            $ids,
+            $winner->bookings()
+                ->orderBy('technician_id')
+                ->pluck('technician_id')
+                ->all(),
+        );
+
+        $this->assertSame('draft', $loser->status);
+        $this->assertSame(0, $loser->lock_version);
+        $this->assertSame(0, $loser->bookings()->count());
+
+        $this->assertDatabaseCount('visit_bookings', 2);
+        $this->assertDatabaseCount('work_order_technicians', 4);
+        $this->assertSame(
+            1,
+            OperationHistory::query()
+                ->where('action', 'visit.confirm')
+                ->count(),
+        );
+    }
 }

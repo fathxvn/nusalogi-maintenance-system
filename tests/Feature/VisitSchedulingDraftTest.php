@@ -6,7 +6,6 @@ use App\Models\Customer;
 use App\Models\OperationHistory;
 use App\Models\User;
 use App\Models\WorkOrder;
-use App\Models\WorkVisit;
 use App\Services\CreateWorkOrderService;
 use App\Services\VisitSchedulingService;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -233,7 +232,7 @@ class VisitSchedulingDraftTest extends TestCase
 
         DB::connection()->beforeExecuting(
             function (string $sql) use (&$failed): void {
-                if (!$failed
+                if (! $failed
                     && str_starts_with(
                         $sql,
                         'insert into `operation_history`',
