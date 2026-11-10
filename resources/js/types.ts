@@ -12,7 +12,7 @@ export type AuthenticatedUser = UserSummary & {
 };
 
 export type NavigationItem = {
-    id: 'dashboard' | 'work-orders' | 'customers' | 'assets' | 'invoices' | 'users' | 'preview';
+    id: 'dashboard' | 'tickets' | 'work-orders' | 'customers' | 'assets' | 'invoices' | 'users' | 'preview';
     label: string;
     href: string | null;
     active: boolean;
@@ -54,6 +54,12 @@ export type WorkOrderSiteOption = {
 };
 
 export type WorkOrderFormData = {
+    command_key?: string;
+    origin_kind?: 'ticket' | 'manual';
+    ticket_id?: number | null;
+    expected_ticket_version?: number | null;
+    manual_reason?: string;
+    initial_scope?: { description: string; acceptance_criteria: string };
     customer_site_id: string;
     title: string;
     description: string;

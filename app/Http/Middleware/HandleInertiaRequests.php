@@ -77,6 +77,7 @@ class HandleInertiaRequests extends Middleware
         }
 
         $items = [
+            ['id' => 'tickets', 'label' => 'Ticket', 'route' => $user->hasAnyRole(['admin', 'koordinator']) ? 'tickets.index' : null],
             ['id' => 'dashboard', 'label' => 'Dashboard', 'route' => 'dashboard'],
             ['id' => 'work-orders', 'label' => 'Work Order', 'route' => $user->hasAnyRole(User::ROLES) ? 'work-orders.index' : null],
             ['id' => 'customers', 'label' => 'Customer', 'route' => $user->hasRole('admin') ? 'admin.customers.index' : null],
@@ -94,6 +95,7 @@ class HandleInertiaRequests extends Middleware
             $routeName = $item['route'];
             $hasRoute = $routeName !== null && Route::has($routeName);
             $routePattern = match ($item['id']) {
+                'tickets' => 'tickets.*',
                 'dashboard' => 'dashboard',
                 'work-orders' => 'work-orders.*',
                 'customers' => 'admin.customers.*',
@@ -110,6 +112,7 @@ class HandleInertiaRequests extends Middleware
                 'href' => $hasRoute ? route($routeName) : null,
                 'active' => $hasRoute && $request->routeIs($routePattern),
                 'inertia' => in_array($routeName, [
+                    'tickets.index',
                     'dashboard',
                     'admin.users.index',
                     'admin.customers.index',
