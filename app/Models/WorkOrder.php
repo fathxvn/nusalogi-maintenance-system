@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -27,6 +30,24 @@ class WorkOrder extends Model
             'scheduled_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
+    }
+
+    /** @param Builder<WorkOrder> $query */
+    #[Scope]
+    protected function visibleTo(Builder $query, User $user): void
+    {
+        $viewer = $user->fresh();
+
+        if (! $viewer || ! $viewer->isActive() || ! $viewer->isApproved() || ! $viewer->hasAnyRole(User::ROLES)) {
+            throw new AuthorizationException('Anda tidak memiliki akses.');
+        }
+
+        if ($viewer->hasRole('teknisi')) {
+            $query->whereHas(
+                'technicians',
+                fn (Builder $technicians) => $technicians->where('users.id', $viewer->id)
+            );
+        }
     }
 
     public function creator(): BelongsTo

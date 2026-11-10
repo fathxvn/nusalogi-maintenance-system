@@ -26,6 +26,7 @@ Route::middleware('guest:web')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)
+        ->middleware('role:admin,koordinator,teknisi')
         ->name('dashboard');
 
     Route::get('/work-orders', [WorkOrderController::class, 'index'])
