@@ -142,3 +142,52 @@ export type AssetFormData = {
     serial_number: string;
     installed_at: string;
 };
+
+export type VisitWorkOrder = {
+    id: number;
+    number: string;
+    title: string;
+    status: string;
+    customer: string | null;
+    site: string | null;
+};
+
+export type BookingRecord = {
+    id: number;
+    technician_name: string;
+    status: string;
+    ended_reason: string | null;
+    cancel_url: string | null;
+    command_key: string | null;
+};
+
+export type VisitRecord = {
+    id: number;
+    visit_no: number;
+    starts_at: string;
+    ends_at: string;
+    zone_name: string;
+    status: string;
+    reason: string | null;
+    previous_visit_no: number | null;
+    lock_version: number;
+    confirm_url: string | null;
+    command_key: string | null;
+    bookings: BookingRecord[];
+};
+
+export type VisitIndexProps = {
+    workOrder: VisitWorkOrder;
+    members: UserSummary[];
+    technicians: UserSummary[];
+    visits: Paginated<VisitRecord>;
+    unavailableReason: string | null;
+    errors?: Record<string, string | Record<string, string>>;
+    links: { index: string; refresh: string; create: string | null };
+};
+
+export type VisitCreateProps = {
+    workOrder: VisitWorkOrder;
+    commandKey: string;
+    links: { index: string; store: string };
+};

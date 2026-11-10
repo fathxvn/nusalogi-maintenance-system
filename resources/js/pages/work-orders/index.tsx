@@ -23,10 +23,11 @@ type Props = {
     workOrders: Paginated<WorkOrder>;
     links: { create: string | null };
     assignmentLinks?: Record<number, string>;
+    visitLinks?: Record<number, string>;
 };
 
-export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {} }: Props) {
-    const hasAssignmentActions = Object.keys(assignmentLinks).length > 0;
+export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {}, visitLinks = {} }: Props) {
+    const hasActions = Object.keys(assignmentLinks).length > 0 || Object.keys(visitLinks).length > 0;
 
     return (
         <>
@@ -56,13 +57,13 @@ export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {}
                             <th>Teknisi</th>
                             <th>Prioritas</th>
                             <th>Status</th>
-                            {hasAssignmentActions && <th scope="col">Aksi</th>}
+                            {hasActions && <th scope="col">Aksi</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {workOrders.data.length === 0 ? (
                             <tr>
-                                <td colSpan={hasAssignmentActions ? 7 : 6} className="empty-state">
+                                <td colSpan={hasActions ? 7 : 6} className="empty-state">
                                     Belum ada Work Order.
                                 </td>
                             </tr>
@@ -89,17 +90,25 @@ export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {}
                                     </td>
                                     <td>{wo.priority}</td>
                                     <td>{wo.status}</td>
-                                    {hasAssignmentActions && (
+                                    {hasActions && (
                                         <td>
-                                            {assignmentLinks[wo.id] ? (
-                                                <Link
-                                                    href={assignmentLinks[wo.id]}
-                                                    aria-label={`Tugaskan teknisi untuk ${wo.number}`}
-                                                    className={buttonVariants({ variant: 'outline' })}
-                                                >
-                                                    Tugaskan Teknisi
-                                                </Link>
-                                            ) : '—'}
+                                            <div className="flex flex-wrap gap-2">
+                                                {visitLinks[wo.id] && (
+                                                    <Link href={visitLinks[wo.id]} className={buttonVariants({ variant: 'outline' })} aria-label={`Kunjungan untuk ${wo.number}`}>
+                                                        Kunjungan
+                                                    </Link>
+                                                )}
+                                                {assignmentLinks[wo.id] && (
+                                                    <Link
+                                                        href={assignmentLinks[wo.id]}
+                                                        aria-label={`Tugaskan teknisi untuk ${wo.number}`}
+                                                        className={buttonVariants({ variant: 'outline' })}
+                                                    >
+                                                        Tugaskan Teknisi
+                                                    </Link>
+                                                )}
+                                                {!visitLinks[wo.id] && !assignmentLinks[wo.id] && '—'}
+                                            </div>
                                         </td>
                                     )}
                                 </tr>
