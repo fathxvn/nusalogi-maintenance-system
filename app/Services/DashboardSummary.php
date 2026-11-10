@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\User;
 use App\Models\WorkOrder;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class DashboardSummary
@@ -20,10 +19,7 @@ class DashboardSummary
      */
     public function forUser(User $user): array
     {
-        $workOrders = WorkOrder::query()->where(function (Builder $query) use ($user): void {
-            $query->where('created_by', $user->id)
-                ->orWhereHas('technicians', fn (Builder $technicians) => $technicians->where('users.id', $user->id));
-        });
+        $workOrders = WorkOrder::query()->visibleTo($user);
         $start = now()->startOfMonth()->subMonthsNoOverflow(5);
         $monthlyCounts = (clone $workOrders)
             ->whereBetween('created_at', [$start, now()->endOfMonth()])

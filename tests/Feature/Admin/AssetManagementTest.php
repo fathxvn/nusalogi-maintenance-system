@@ -402,7 +402,7 @@ class AssetManagementTest extends TestCase
     {
         $user = User::factory()->create(['role' => $role]);
 
-        $response = $this->actingAs($user)->get(route('dashboard'))->assertOk();
+        $response = $this->actingAs($user)->get(route('migration.test'))->assertOk();
 
         $items = collect($response->inertiaProps('navigation'))->keyBy('id');
         $this->assertNull($items['assets']['href']);

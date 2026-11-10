@@ -6,7 +6,6 @@ use App\Models\Asset;
 use App\Models\CustomerSite;
 use App\Models\WorkOrder;
 use Closure;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -31,6 +30,7 @@ class WorkOrderController extends Controller
         $user = $request->user();
 
         $workOrders = WorkOrder::query()
+            ->visibleTo($user)
             ->select([
                 'id',
                 'wo_number',
@@ -47,13 +47,6 @@ class WorkOrderController extends Controller
                 'site.customer:id,name',
                 'technicians:id,name',
             ])
-            ->when(
-                $user->hasRole('teknisi'),
-                fn (Builder $query) => $query->whereHas(
-                    'technicians',
-                    fn (Builder $technicians) => $technicians->where('users.id', $user->id)
-                )
-            )
             ->latest('id')
             ->paginate(10)
             ->through(fn (WorkOrder $workOrder): array => [
