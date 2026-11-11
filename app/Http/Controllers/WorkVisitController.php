@@ -36,7 +36,13 @@ class WorkVisitController extends Controller
         $visits = $workOrder->visits()->with([
             'bookings.technician:id,name',
             'previousVisit:id,visit_no',
+            'successorVisit:id,previous_visit_id,visit_no',
         ])->orderByDesc('visit_no')->paginate(10)->through(function (WorkVisit $visit) use ($workOrder, $canConfirm, $canCancel): array {
+            $canReschedule = $canConfirm && $visit->status === 'confirmed' && $visit->successorVisit === null
+                && $visit->bookings->contains('status', 'confirmed')
+                && $visit->bookings->every(fn (VisitBooking $booking): bool => in_array($booking->status, ['confirmed', 'cancelled'], true)
+                    && $booking->actual_start_at === null && $booking->actual_end_at === null);
+
             return [
                 'id' => $visit->id,
                 'visit_no' => $visit->visit_no,
@@ -46,6 +52,11 @@ class WorkVisitController extends Controller
                 'status' => $visit->status,
                 'reason' => $visit->reason,
                 'previous_visit_no' => $visit->previousVisit?->visit_no,
+                'successor_visit_no' => $visit->successorVisit?->visit_no,
+                'reschedule_url' => $canReschedule ? route('work-orders.visits.reschedule', [$workOrder, $visit]) : null,
+                'reschedule_command_key' => $canReschedule ? (string) Str::uuid() : null,
+                'active_technician_ids' => $canReschedule
+                    ? $visit->bookings->where('status', 'confirmed')->pluck('technician_id')->map(fn ($id): int => (int) $id)->sort()->values()->all() : [],
                 'lock_version' => $visit->lock_version,
                 'confirm_url' => $canConfirm && $visit->status === 'draft' && $visit->bookings->isEmpty()
                     ? route('work-orders.visits.confirm', [$workOrder, $visit]) : null,
@@ -128,6 +139,18 @@ class WorkVisitController extends Controller
         $service->cancel($actor, $target->id, $request->only(['command_key', 'expected_visit_version', 'expected_booking_status', 'reason']));
 
         return redirect()->route('work-orders.visits.index', $workOrder)->with('success', 'Booking peserta dibatalkan. Keanggotaan Work Order tetap.');
+    }
+
+    public function reschedule(Request $request, WorkOrder $workOrder, int $visit, M1CommandService $commands, VisitSchedulingService $service): RedirectResponse
+    {
+        $actor = $commands->authorize($request->user(), ['koordinator']);
+        $workOrder = $this->visible($actor, $workOrder);
+        $source = $workOrder->visits()->findOrFail($visit);
+        $service->reschedule($actor, $source->id, $request->only([
+            'command_key', 'expected_visit_version', 'starts_at', 'ends_at', 'zone_name', 'technician_ids', 'reason',
+        ]));
+
+        return redirect()->route('work-orders.visits.index', $workOrder)->with('success', 'Jadwal pengganti dikonfirmasi. Riwayat kunjungan sebelumnya tetap tersimpan.');
     }
 
     private function visible(User $actor, WorkOrder $workOrder): WorkOrder

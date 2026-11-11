@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { VisitBookingCancelAction } from '@/components/visit-booking-cancel-action';
 import { VisitConfirmForm } from '@/components/visit-confirm-form';
 import { VisitFormErrors } from '@/components/visit-form-errors';
+import { VisitRescheduleAction } from '@/components/visit-reschedule-action';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { statusClass, workOrderLabels } from '@/lib/presentation';
 import { cn } from '@/lib/utils';
@@ -54,6 +55,7 @@ export default function VisitIndex({ workOrder, members, technicians, visits, un
                             </div>
                         </div>
                         {visit.previous_visit_no !== null && <p className="mt-3 text-sm text-muted-foreground">Menggantikan kunjungan {visit.previous_visit_no}.</p>}
+                        {visit.successor_visit_no != null && <p className="mt-3 text-sm text-muted-foreground">Diganti oleh kunjungan {visit.successor_visit_no}.</p>}
                         {visit.reason && <p className="mt-3 text-sm break-words whitespace-pre-wrap">{visit.reason}</p>}
                         {visit.bookings.length > 0 ? (
                             <ul className="mt-4 divide-y divide-border border-t border-border">
@@ -70,6 +72,7 @@ export default function VisitIndex({ workOrder, members, technicians, visits, un
                             </ul>
                         ) : <p className="mt-4 text-sm text-muted-foreground">Belum ada booking peserta.</p>}
                         {visit.confirm_url && visit.command_key && <VisitConfirmForm key={`${visit.id}:${visit.lock_version}`} visit={visit} technicians={technicians} refreshUrl={links.refresh} />}
+                        {visit.reschedule_url && visit.reschedule_command_key && <VisitRescheduleAction key={`reschedule:${visit.id}`} visit={visit} technicians={technicians} refreshUrl={links.refresh} />}
                     </article>
                 ))}
             </div>

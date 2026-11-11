@@ -17,7 +17,11 @@ export function configure(overrides = {}) {
         delete: (...args) => calls.push(['delete', ...args]),
         get: (...args) => calls.push(['get', ...args]),
         setData: (key, value) => { form.data[key] = value; },
-        clearErrors: () => { form.errors = {}; },
+        setError: (key, value) => { form.errors[key] = value; },
+        clearErrors: (...keys) => {
+            if (keys.length === 0) form.errors = {};
+            else for (const key of keys) delete form.errors[key];
+        },
     };
     return form;
 }

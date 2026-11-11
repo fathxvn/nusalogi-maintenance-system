@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/work-orders/{workOrder}/visits/create', [WorkVisitController::class, 'create'])->name('work-orders.visits.create');
         Route::post('/work-orders/{workOrder}/visits', [WorkVisitController::class, 'store'])->name('work-orders.visits.store');
         Route::post('/work-orders/{workOrder}/visits/{visit}/confirm', [WorkVisitController::class, 'confirm'])->whereNumber('visit')->name('work-orders.visits.confirm');
+        Route::post('/work-orders/{workOrder}/visits/{visit}/reschedule', [WorkVisitController::class, 'reschedule'])->whereNumber('visit')->name('work-orders.visits.reschedule');
         Route::post('/work-orders/{workOrder}/visits/{visit}/bookings/{booking}/cancel', [WorkVisitController::class, 'cancel'])->whereNumber('visit')->whereNumber('booking')->name('work-orders.visits.bookings.cancel');
     });
 

@@ -170,6 +170,10 @@ export type VisitRecord = {
     status: string;
     reason: string | null;
     previous_visit_no: number | null;
+    successor_visit_no: number | null;
+    reschedule_url: string | null;
+    reschedule_command_key: string | null;
+    active_technician_ids: number[];
     lock_version: number;
     confirm_url: string | null;
     command_key: string | null;

@@ -9,10 +9,40 @@ export const visitZones = [
 export function withVisitOffset(local: string, zone: string): string {
     if (local === '') return '';
     const option = visitZones.find(candidate => candidate.value === zone);
-    if (!option || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) {
         throw new RangeError('Waktu atau zona waktu tidak valid.');
     }
-    return `${local}${option.offset}`;
+    if (option) return `${local}${option.offset}`;
+
+    // Existing API-created visits may use another IANA zone. Reject ambiguous
+    // or nonexistent wall times rather than silently choosing a DST instant.
+    const timestamp = Date.parse(`${local}Z`);
+    if (!Number.isFinite(timestamp)) throw new RangeError('Waktu tidak valid.');
+    const offsets = new Set([-36, 0, 36].map(hours => visitOffsetAt(new Date(timestamp + hours * 3600000), zone)));
+    const matches = [...offsets].map(offset => `${local}${offset}`).filter(value => visitLocalTime(value, zone) === local);
+    if (matches.length !== 1) throw new RangeError('Waktu tidak tersedia atau ambigu pada zona ini. Pilih waktu atau zona lain.');
+    return matches[0];
+}
+
+function visitOffsetAt(instant: Date, zone: string): string {
+    const offset = new Intl.DateTimeFormat('en-GB', { timeZone: zone, timeZoneName: 'longOffset' })
+        .formatToParts(instant).find(part => part.type === 'timeZoneName')?.value;
+    if (offset === 'GMT') return '+00:00';
+    if (!offset || !/^GMT[+-]\d{2}:\d{2}$/.test(offset)) throw new RangeError('Zona waktu tidak valid.');
+    return offset.slice(3);
+}
+
+export function visitLocalTime(instant: string, zone: string): string {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date(instant));
+    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(candidate => candidate.type === type)?.value;
+    return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
+}
+
+export function visitInputValue(instant: string, zone: string): string {
+    return `${visitLocalTime(instant, zone)}${visitOffsetAt(new Date(instant), zone)}`;
 }
 
 export function visitDateLabel(instant: string, zone: string): string {
@@ -45,6 +75,8 @@ const conflictMessages: Record<string, string> = {
     BOOKING_MEMBERSHIP_ANOMALY: 'Keanggotaan teknisi sudah berubah. Tindakan belum disimpan.',
     VISIT_RESOURCES_CHANGED: 'Peserta berubah saat diproses. Muat ulang dan coba lagi.',
     VISIT_INTERVAL_INVALID: 'Interval kunjungan tidak valid. Hubungi Koordinator.',
+    VISIT_RESCHEDULE_NOT_ALLOWED: 'Kunjungan ini tidak dapat dijadwal ulang. Muat ulang data; kunjungan yang sudah mulai harus tetap dipertahankan.',
+    VISIT_RESCHEDULE_NO_CHANGES: 'Ubah waktu atau peserta sebelum menjadwal ulang. Alasan saja tidak mengubah reservasi.',
 };
 
 export function visitErrorLabel(message: string): string {
