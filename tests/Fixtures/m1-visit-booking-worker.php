@@ -66,7 +66,7 @@ try {
 
     $action = $input['action'] ?? 'confirm';
 
-    if (! in_array($action, ['confirm', 'cancel'], true)) {
+    if (! in_array($action, ['confirm', 'cancel', 'reschedule'], true)) {
         throw new RuntimeException('Unsupported concurrency action.');
     }
 
@@ -138,8 +138,8 @@ try {
 
     $actor = User::query()->findOrFail($input['actor_id']);
 
-    if ($action === 'confirm') {
-        $visit = $app->make(VisitSchedulingService::class)->confirm(
+    if (in_array($action, ['confirm', 'reschedule'], true)) {
+        $visit = $app->make(VisitSchedulingService::class)->{$action}(
             $actor,
             (int) $input['visit_id'],
             $input['payload'],
