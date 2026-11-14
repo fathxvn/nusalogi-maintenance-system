@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportEvidenceController;
+use App\Http\Controllers\ServiceReportController;
 use App\Http\Controllers\ServiceTicketController;
 use App\Http\Controllers\WorkOrderAssignmentController;
 use App\Http\Controllers\WorkOrderController;
@@ -46,6 +47,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/work-orders/{workOrder}/visits', [WorkVisitController::class, 'index'])
         ->middleware('role:admin,koordinator,teknisi')->name('work-orders.visits.index');
+
+    Route::get('/work-orders/{workOrder}/reports', [ServiceReportController::class, 'index'])
+        ->middleware('role:admin,koordinator,teknisi')->name('work-orders.reports.index');
+    Route::get('/work-orders/{workOrder}/reports/{report}', [ServiceReportController::class, 'show'])
+        ->middleware('role:admin,koordinator,teknisi')->whereNumber('report')->name('work-orders.reports.show');
+    Route::middleware('role:teknisi')->group(function (): void {
+        Route::post('/work-orders/{workOrder}/scopes/{scope}/reports', [ServiceReportController::class, 'store'])->whereNumber('scope')->name('work-orders.reports.store');
+        Route::patch('/work-orders/{workOrder}/reports/{report}', [ServiceReportController::class, 'update'])->whereNumber('report')->name('work-orders.reports.update');
+        Route::post('/work-orders/{workOrder}/reports/{report}/submit', [ServiceReportController::class, 'submit'])->whereNumber('report')->name('work-orders.reports.submit');
+        Route::post('/work-orders/{workOrder}/reports/{report}/revise', [ServiceReportController::class, 'revise'])->whereNumber('report')->name('work-orders.reports.revise');
+        Route::post('/work-orders/{workOrder}/reports/{report}/materials', [ServiceReportController::class, 'material'])->whereNumber('report')->name('work-orders.reports.materials.store');
+    });
+    Route::post('/work-orders/{workOrder}/reports/{report}/review', [ServiceReportController::class, 'review'])
+        ->middleware('role:koordinator')->whereNumber('report')->name('work-orders.reports.review');
 
     Route::post('/work-orders/{workOrder}/reports/{report}/evidence', [ReportEvidenceController::class, 'store'])
         ->middleware('role:teknisi')->whereNumber('report')->name('work-orders.reports.evidence.store');

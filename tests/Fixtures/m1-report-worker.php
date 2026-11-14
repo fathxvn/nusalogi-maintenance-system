@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Services\MaterialUsageService;
 use App\Services\ServiceReportDraftService;
+use App\Services\ServiceReportWorkflowService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -66,7 +67,7 @@ try {
 
     $action = $input['action'] ?? 'create';
 
-    if (! in_array($action, ['create', 'update', 'material'], true)) {
+    if (! in_array($action, ['create', 'update', 'material', 'submit', 'review', 'revise'], true)) {
         throw new RuntimeException('Unsupported concurrency action.');
     }
 
@@ -153,12 +154,17 @@ try {
 
     $actor = User::query()->findOrFail($input['actor_id']);
 
-    $service = $app->make($action === 'material' ? MaterialUsageService::class : ServiceReportDraftService::class);
-    $report = $action === 'create'
-        ? $service->createDraft($actor, (int) $input['work_order_id'], (int) $input['scope_item_id'], $input['payload'])
-        : ($action === 'material'
-            ? $service->record($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload'])
-            : $service->updateDraft($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']));
+    if (in_array($action, ['submit', 'review', 'revise'], true)) {
+        $report = $app->make(ServiceReportWorkflowService::class)->{$action}(
+            $actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']);
+    } else {
+        $service = $app->make($action === 'material' ? MaterialUsageService::class : ServiceReportDraftService::class);
+        $report = $action === 'create'
+            ? $service->createDraft($actor, (int) $input['work_order_id'], (int) $input['scope_item_id'], $input['payload'])
+            : ($action === 'material'
+                ? $service->record($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload'])
+                : $service->updateDraft($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']));
+    }
     $result = ['ok' => true, 'report_id' => $report->id, 'lock_version' => $report->lock_version];
 } catch (ValidationException $exception) {
     $result = [
