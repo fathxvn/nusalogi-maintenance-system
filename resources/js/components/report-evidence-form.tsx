@@ -34,7 +34,7 @@ export function ReportEvidenceForm({ action, reportVersion, refreshUrl }: { acti
         event.preventDefault();
         if (form.processing || hashing || submitting.current || !form.data.file || form.data.sha256.length !== 64) return;
         submitting.current = true;
-        form.post(action.url, { forceFormData: true, preserveScroll: true, errorBag: 'report-evidence', onFinish: () => { submitting.current = false; } });
+        form.post(action.url, { forceFormData: true, preserveScroll: true, preserveState: 'errors', errorBag: 'report-evidence', onFinish: () => { submitting.current = false; } });
     }
     return <form onSubmit={submit} aria-label="Unggah evidence privat" className="panel flex flex-col gap-4">
         <h2 className="section-title">Evidence privat</h2>

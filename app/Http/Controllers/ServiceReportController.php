@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BastItem;
 use App\Models\MaterialUsage;
+use App\Models\OperationHistory;
 use App\Models\ServiceReport;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderScopeItem;
 use App\Services\M1CommandService;
 use App\Services\MaterialUsageService;
+use App\Services\ReportCorrectionService;
 use App\Services\ServiceReportDraftService;
 use App\Services\ServiceReportWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -44,7 +47,7 @@ class ServiceReportController extends Controller
             'legacyReports' => $wo->reports()->whereNull('scope_item_id')->orderByDesc('id')->get()->map(fn (ServiceReport $report): array => [
                 'id' => $report->id, 'status' => $report->review_status, 'url' => route('work-orders.reports.show', [$wo, $report]),
             ])->all(),
-            'links' => ['index' => route('work-orders.index'), 'refresh' => route('work-orders.reports.index', $wo), 'visits' => route('work-orders.visits.index', $wo)],
+            'links' => ['index' => route('work-orders.index'), 'refresh' => route('work-orders.reports.index', $wo), 'visits' => route('work-orders.visits.index', $wo), 'acceptance' => route('work-orders.acceptance.index', $wo)],
             'unavailableReason' => $baseline ? null : 'Laporan historis tetap dapat dibaca. Origin, konteks acceptance, dan scope wajib M1 harus diverifikasi sebelum memakai workflow baru.',
         ]);
     }
@@ -71,6 +74,7 @@ class ServiceReportController extends Controller
             'workOrder' => $this->summary($wo),
             'report' => [...$target->only(['id', 'revision_no', 'previous_revision_id', 'review_status', 'diagnosis', 'action_taken', 'result',
                 'recommendation', 'checklist_snapshot', 'asset_results', 'usage_snapshot', 'review_notes', 'lock_version']),
+                'revision_category' => OperationHistory::query()->where('action', 'report.review')->where('subject_type', 'service_report')->where('subject_id', $target->id)->orderByDesc('id')->first()?->facts['category'] ?? null,
                 'author' => $target->creator->name, 'reviewer' => $target->reviewer?->name,
                 'submitted_at' => $target->submitted_at?->toISOString(), 'reviewed_at' => $target->reviewed_at?->toISOString(),
                 'is_head' => $isHead, 'legacy' => $target->scope_item_id === null,
@@ -86,7 +90,12 @@ class ServiceReportController extends Controller
             'materials' => $target->scope_item_id === null ? [] : MaterialUsage::query()->where('scope_item_id', $target->scope_item_id)->orderBy('id')->get()
                 ->map(fn (MaterialUsage $usage): array => $usage->only(['id', 'item_description', 'quantity', 'unit_code', 'movement_kind', 'adjusts_usage_id', 'supply_source', 'disposition', 'reason']))->all(),
             'assets' => $wo->assets()->orderBy('assets.id')->get(['assets.id', 'asset_code'])->map->only(['id', 'asset_code'])->all(),
+            'correctionAuthors' => $actor->hasRole('koordinator') ? $wo->technicians()->where('role', 'teknisi')->where('is_active', true)->where('approval_status', 'approved')->orderBy('users.id')->get(['users.id', 'name'])->map->only(['id', 'name'])->all() : [],
             'actions' => [
+                'correction' => $actor->hasRole('koordinator') && $isHead && $active && in_array($target->review_status, ['approved', 'needs_revision'], true)
+                    && in_array($wo->status, ['in_progress', 'pending_review', 'awaiting_acceptance', 'rework'], true)
+                    && ! BastItem::query()->whereHas('reportRevision', fn ($query) => $query->where('scope_item_id', $target->scope_item_id))->whereHas('version', fn ($query) => $query->where('status', 'accepted'))->exists()
+                    ? $this->action('work-orders.reports.correction', $base) : null,
                 'update' => $editable ? $this->action('work-orders.reports.update', $base) : null,
                 'submit' => $editable && $wo->status !== 'rework' ? $this->action('work-orders.reports.submit', $base) : null,
                 'review' => $reviewable ? $this->action('work-orders.reports.review', $base) : null,
@@ -151,6 +160,14 @@ class ServiceReportController extends Controller
             'item_description', 'unit_code', 'quantity', 'supply_source', 'disposition', 'reason']));
 
         return redirect()->route('work-orders.reports.show', [$workOrder, $report])->with('success', 'Movement material tercatat.');
+    }
+
+    public function correction(Request $request, WorkOrder $workOrder, int $report, ReportCorrectionService $service): RedirectResponse
+    {
+        $workOrder = $this->visible($request->user(), $workOrder);
+        $next = $service->open($request->user(), $workOrder->id, $report, $request->only(['command_key', 'expected_report_version', 'expected_work_order_version', 'author_id', 'category', 'reason']));
+
+        return redirect()->route('work-orders.reports.show', [$workOrder, $next])->with('success', 'Koreksi dibuka; paket BAST pending yang terdampak disupersede.');
     }
 
     private function visible(User $actor, WorkOrder $workOrder): WorkOrder

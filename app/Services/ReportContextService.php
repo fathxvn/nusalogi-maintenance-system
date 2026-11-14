@@ -9,6 +9,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderScopeItem;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ReportContextService
 {
@@ -29,7 +30,7 @@ class ReportContextService
     public function lockRoots(User $actor, int $workOrderId, ?int $reportId = null, bool $authorOnly = true): array
     {
         $workOrder = WorkOrder::query()->lockForUpdate()->findOrFail($workOrderId);
-        if ($actor->hasRole('teknisi') && ! $workOrder->technicians()->where('users.id', $actor->id)->exists()) {
+        if ($actor->hasRole('teknisi') && DB::table('work_order_technicians')->where('work_order_id', $workOrder->id)->where('user_id', $actor->id)->lockForUpdate()->first() === null) {
             throw new AuthorizationException('Hanya teknisi anggota WO yang boleh mengubah hasil pekerjaan.');
         }
         $scopes = $workOrder->scopeItems()->orderBy('id')->lockForUpdate()->get();
@@ -67,9 +68,12 @@ class ReportContextService
     /** @param list<int> $resources
      * @return array{workOrder: WorkOrder, scopes: Collection<int, WorkOrderScopeItem>, bookings: Collection<int, VisitBooking>}
      */
-    public function lockExecutionRoots(User $actor, int $workOrderId, int $reportId, array $resources): array
+    public function lockExecutionRoots(User $actor, int $workOrderId, ?int $reportId, array $resources): array
     {
         $context = $this->lockRoots($actor, $workOrderId, $reportId);
+        if (! $actor->hasRole('teknisi')) {
+            $this->commands->authorize($actor, ['koordinator'], true);
+        }
         User::query()->whereIn('id', $resources)->orderBy('id')->lockForUpdate()->get();
         $visits = $context['workOrder']->visits()->orderBy('id')->lockForUpdate()->get();
         $bookings = VisitBooking::query()->whereIn('visit_id', $visits->modelKeys())->orderBy('id')->lockForUpdate()->get();
@@ -77,7 +81,7 @@ class ReportContextService
             $this->commands->conflict('work_order_id', 'WORK_ORDER_PARTICIPANTS_CHANGED');
         }
 
-        return [...$context, 'bookings' => $bookings];
+        return [...$context, 'bookings' => $bookings, 'visits' => $visits];
     }
 
     /** @param array{workOrder: WorkOrder, scopes: Collection<int, WorkOrderScopeItem>} $context */

@@ -13,7 +13,7 @@ export function ReportMaterialForm({ action, reportVersion, movements, refreshUr
         event.preventDefault();
         if (form.processing || submitting.current) return;
         submitting.current = true;
-        form.post(action.url, { preserveScroll: true, errorBag: 'report-material', onFinish: () => { submitting.current = false; } });
+        form.post(action.url, { preserveScroll: true, preserveState: 'errors', errorBag: 'report-material', onFinish: () => { submitting.current = false; } });
     }
     function parent(id: string) {
         const movement = movements.find(item => item.id === Number(id));

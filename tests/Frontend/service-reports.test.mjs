@@ -43,6 +43,7 @@ for (const [name, Component, props] of [
         assert.equal(form.data.expected_report_version, 0);
         assert.equal(form.calls[0][1], action.url);
         assert.equal(form.calls[0][2].preserveScroll, true);
+        assert.equal(form.calls[0][2].preserveState, 'errors');
         form.calls[0][2].onFinish();
         formIn(tree).props.onSubmit(event);
         assert.equal(form.calls.length, 2);

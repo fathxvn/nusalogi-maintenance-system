@@ -15,7 +15,7 @@ export function ReportDraftForm({ report, action, assets, refreshUrl }: Props) {
         event.preventDefault();
         if (form.processing || submitting.current) return;
         submitting.current = true;
-        form.patch(action.url, { preserveScroll: true, errorBag: `edit-report-${report.id}`, onFinish: () => { submitting.current = false; } });
+        form.patch(action.url, { preserveScroll: true, preserveState: 'errors', errorBag: `edit-report-${report.id}`, onFinish: () => { submitting.current = false; } });
     }
     function checklist(index: number, field: keyof ChecklistItem, value: string) {
         form.setData('checklist_snapshot', form.data.checklist_snapshot.map((item, i) => i === index ? { ...item, [field]: value } : item));

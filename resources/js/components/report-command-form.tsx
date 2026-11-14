@@ -13,7 +13,7 @@ export function ReportCommandForm({ action, workOrderVersion, reportVersion, lab
         event.preventDefault();
         if (form.processing || submitting.current || !action.url || !action.command_key) return;
         submitting.current = true;
-        form.post(action.url, { preserveScroll: true, errorBag: `report-${action.command_key}`, onFinish: () => { submitting.current = false; } });
+        form.post(action.url, { preserveScroll: true, preserveState: 'errors', errorBag: `report-${action.command_key}`, onFinish: () => { submitting.current = false; } });
     }
     return <form onSubmit={submit} aria-label={label} className="flex flex-col items-start gap-3">
         {description && <p className="text-sm text-muted-foreground">{description}</p>}

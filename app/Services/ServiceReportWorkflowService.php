@@ -152,17 +152,24 @@ class ServiceReportWorkflowService
 
     public function successor(ServiceReport $previous, User $author): ServiceReport
     {
+        $photos = $previous->photos()->orderBy('id')->lockForUpdate()->get();
+        $files = PrivateEvidenceFile::query()->whereIn('id', $photos->pluck('evidence_file_id'))->orderBy('id')->lockForUpdate()->get();
+        if ($files->contains(fn (PrivateEvidenceFile $file): bool => $file->state !== 'ready')) {
+            $this->commands->conflict('file', 'EVIDENCE_NOT_READY');
+        }
+
+        return $this->createSuccessor($previous, $author, $photos);
+    }
+
+    /** Caller holds WO/scope/user/report/photo/file locks in A1 order. @param Collection<int, ServicePhoto> $photos */
+    public function createSuccessor(ServiceReport $previous, User $author, Collection $photos): ServiceReport
+    {
         $report = new ServiceReport;
         $report->forceFill([
             ...$previous->only(['work_order_id', 'scope_item_id', 'diagnosis', 'action_taken', 'result', 'recommendation', 'checklist_snapshot', 'asset_results']),
             'created_by' => $author->id, 'revision_no' => $previous->revision_no + 1, 'previous_revision_id' => $previous->id,
             'review_status' => 'draft', 'usage_snapshot' => null, 'lock_version' => 0,
         ])->save();
-        $photos = $previous->photos()->orderBy('id')->lockForUpdate()->get();
-        $files = PrivateEvidenceFile::query()->whereIn('id', $photos->pluck('evidence_file_id'))->orderBy('id')->lockForUpdate()->get();
-        if ($files->contains(fn (PrivateEvidenceFile $file): bool => $file->state !== 'ready')) {
-            $this->commands->conflict('file', 'EVIDENCE_NOT_READY');
-        }
         foreach ($photos as $photo) {
             $copy = $photo->replicate();
             $copy->service_report_id = $report->id;

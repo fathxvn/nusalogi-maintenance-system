@@ -29,6 +29,10 @@ class WorkOrder extends Model
         return [
             'scheduled_at' => 'datetime',
             'completed_at' => 'datetime',
+            'started_at' => 'datetime',
+            'field_finished_at' => 'datetime',
+            'closed_at' => 'datetime',
+            'lock_version' => 'integer',
         ];
     }
 

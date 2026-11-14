@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Services\BastService;
 use App\Services\MaterialUsageService;
+use App\Services\ReportCorrectionService;
 use App\Services\ServiceReportDraftService;
 use App\Services\ServiceReportWorkflowService;
 use Illuminate\Contracts\Console\Kernel;
@@ -59,15 +61,19 @@ try {
     if (! is_array($input)
         || ! in_array(
             $input['barrier_table'] ?? null,
-            ['users', 'work_orders'],
+            ['users', 'work_orders', 'customers'],
             true,
         )) {
         throw new RuntimeException('Invalid concurrency barrier input.');
     }
 
+    if (isset($input['evidence_root'])) {
+        config(['filesystems.disks.evidence.root' => $input['evidence_root']]);
+    }
+
     $action = $input['action'] ?? 'create';
 
-    if (! in_array($action, ['create', 'update', 'material', 'submit', 'review', 'revise'], true)) {
+    if (! in_array($action, ['create', 'update', 'material', 'submit', 'review', 'revise', 'bast.issue', 'bast.decide', 'bast.cancel', 'correction'], true)) {
         throw new RuntimeException('Unsupported concurrency action.');
     }
 
@@ -154,7 +160,12 @@ try {
 
     $actor = User::query()->findOrFail($input['actor_id']);
 
-    if (in_array($action, ['submit', 'review', 'revise'], true)) {
+    if (str_starts_with($action, 'bast.')) {
+        $method = substr($action, 5);
+        $report = $app->make(BastService::class)->{$method}($actor, (int) $input['version_id'], $input['payload']);
+    } elseif ($action === 'correction') {
+        $report = $app->make(ReportCorrectionService::class)->open($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']);
+    } elseif (in_array($action, ['submit', 'review', 'revise'], true)) {
         $report = $app->make(ServiceReportWorkflowService::class)->{$action}(
             $actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']);
     } else {

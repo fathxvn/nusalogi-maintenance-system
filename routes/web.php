@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CustomerSiteController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
+use App\Http\Controllers\BastController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportEvidenceController;
 use App\Http\Controllers\ServiceReportController;
@@ -47,6 +48,19 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/work-orders/{workOrder}/visits', [WorkVisitController::class, 'index'])
         ->middleware('role:admin,koordinator,teknisi')->name('work-orders.visits.index');
+
+    Route::get('/work-orders/{workOrder}/acceptance', [BastController::class, 'index'])->middleware('role:admin,koordinator,teknisi')->name('work-orders.acceptance.index');
+    Route::get('/bast/{version}', [BastController::class, 'show'])->middleware('role:admin,koordinator,teknisi')->whereNumber('version')->name('bast.show');
+    Route::get('/bast/{version}/files/{purpose}', [BastController::class, 'download'])->middleware('role:admin,koordinator,teknisi')->whereNumber('version')->name('bast.download');
+    Route::middleware('role:koordinator')->group(function (): void {
+        Route::post('/work-orders/{workOrder}/acceptance', [BastController::class, 'store'])->name('work-orders.acceptance.store');
+        Route::patch('/bast/{version}', [BastController::class, 'update'])->whereNumber('version')->name('bast.update');
+        Route::post('/bast/{version}/issue', [BastController::class, 'issue'])->whereNumber('version')->name('bast.issue');
+        Route::post('/bast/{version}/decide', [BastController::class, 'decide'])->whereNumber('version')->name('bast.decide');
+        Route::post('/bast/{version}/cancel', [BastController::class, 'cancel'])->whereNumber('version')->name('bast.cancel');
+        Route::post('/bast/{version}/revise', [BastController::class, 'revise'])->whereNumber('version')->name('bast.revise');
+        Route::post('/work-orders/{workOrder}/reports/{report}/correction', [ServiceReportController::class, 'correction'])->whereNumber('report')->name('work-orders.reports.correction');
+    });
 
     Route::get('/work-orders/{workOrder}/reports', [ServiceReportController::class, 'index'])
         ->middleware('role:admin,koordinator,teknisi')->name('work-orders.reports.index');

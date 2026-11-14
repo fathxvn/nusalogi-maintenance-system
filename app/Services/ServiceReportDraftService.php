@@ -8,6 +8,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderScopeItem;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -90,9 +91,8 @@ class ServiceReportDraftService
                     ->lockForUpdate()
                     ->findOrFail($workOrderId);
 
-                $isMember = $workOrder->technicians()
-                    ->where('users.id', $actor->id)
-                    ->exists();
+                $isMember = DB::table('work_order_technicians')->where('work_order_id', $workOrder->id)
+                    ->where('user_id', $actor->id)->lockForUpdate()->first() !== null;
 
                 if (! $isMember) {
                     throw new AuthorizationException(
@@ -296,9 +296,8 @@ class ServiceReportDraftService
                     ->lockForUpdate()
                     ->findOrFail($workOrderId);
 
-                $isMember = $workOrder->technicians()
-                    ->where('users.id', $actor->id)
-                    ->exists();
+                $isMember = DB::table('work_order_technicians')->where('work_order_id', $workOrder->id)
+                    ->where('user_id', $actor->id)->lockForUpdate()->first() !== null;
 
                 if (! $isMember) {
                     throw new AuthorizationException(

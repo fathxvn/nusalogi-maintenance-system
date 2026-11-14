@@ -10,6 +10,7 @@ export type ReportRecord = {
     id: number; revision_no: number | null; previous_revision_id: number | null; review_status: string;
     diagnosis: string | null; action_taken: string | null; result: string | null; recommendation: string | null;
     checklist_snapshot: ChecklistItem[] | null; asset_results: AssetResult[] | null; usage_snapshot: MaterialMovement[] | null;
+    revision_category?: string | null;
     review_notes: string | null; lock_version: number; author: string; reviewer: string | null;
     submitted_at: string | null; reviewed_at: string | null; is_head: boolean; legacy: boolean;
     scope: { id: number; scope_no: number; description: string; acceptance_criteria: string } | null;
@@ -18,14 +19,15 @@ export type ReportRecord = {
 export type ReportShowProps = {
     workOrder: ReportWorkOrder; report: ReportRecord; revisions: ReportRevision[];
     materials: MaterialMovement[]; assets: { id: number; asset_code: string }[];
-    actions: Record<'update' | 'submit' | 'review' | 'revise' | 'evidence' | 'material', ReportAction | null>;
+    actions: Record<'update' | 'submit' | 'review' | 'revise' | 'evidence' | 'material' | 'correction', ReportAction | null>;
+    correctionAuthors?: { id: number; name: string }[];
     links: { index: string; refresh: string };
 };
 export type ReportIndexProps = {
     workOrder: ReportWorkOrder;
     scopes: { id: number; scope_no: number; description: string; acceptance_criteria: string; is_required: boolean; disposition: string; create: ReportAction | null; revisions: ReportRevision[] }[];
     legacyReports: { id: number; status: string; url: string }[]; unavailableReason: string | null;
-    links: { index: string; refresh: string; visits: string };
+    links: { index: string; refresh: string; visits: string; acceptance?: string };
 };
 
 export function reportStatus(status: string): string {
@@ -34,6 +36,18 @@ export function reportStatus(status: string): string {
 
 export function reportError(message: string): string {
     const messages: Record<string, string> = {
+        REWORK_CATEGORY_MISMATCH: 'Jenis koreksi harus mengikuti kategori keputusan QA sebelumnya.',
+        BAST_PARENT_SET_CHANGED: 'Isi paket atau peserta berubah. Muat ulang dan susun ulang paket.',
+        BAST_APPROVED_HEAD_REQUIRED: 'Setiap scope harus memakai revisi terbaru yang approved dan tidak boleh dimasukkan dua kali.',
+        BAST_CONTEXT_MISMATCH: 'Customer, konteks acceptance, atau status WO dalam paket tidak cocok.',
+        BAST_AUTHORITY_SCOPE_MISMATCH: 'Bukti kewenangan PIC harus mencakup seluruh site dalam paket.',
+        BAST_SCOPE_ALREADY_CLAIMED: 'Scope sudah berada pada BAST pending atau telah diterima customer.',
+        BAST_VERSION_CONFLICT: 'Versi dokumen berubah atau telah digantikan. Muat ulang sebelum melanjutkan.',
+        BAST_STATE_CONFLICT: 'Tindakan tidak tersedia pada status versi BAST ini.',
+        BAST_ACCEPTED_IMMUTABLE: 'Keputusan acceptance final dipertahankan. Gunakan pekerjaan tindak lanjut untuk kebutuhan baru.',
+        ACCEPTED_SCOPE_IMMUTABLE: 'Scope telah diterima customer. Koreksi memerlukan pekerjaan tindak lanjut.',
+        ACTIVE_BOOKING_BLOCKS_REWORK: 'Selesaikan sesi yang sedang berjalan sebelum membuka rework teknis.',
+
         REPORT_VERSION_CONFLICT: 'Laporan berubah. Simpan salinan isian Anda lalu muat ulang data.',
         WORK_ORDER_VERSION_CONFLICT: 'Status WO berubah. Muat ulang data sebelum melanjutkan.',
         REPORT_REVISION_CONFLICT: 'Sudah ada revisi yang lebih baru. Buka revisi terbaru.',

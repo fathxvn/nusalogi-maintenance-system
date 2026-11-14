@@ -50,3 +50,21 @@ Verification:
 - `npm run typecheck`, `npm run build`, host `vendor/bin/pint --dirty --format agent`, and `git diff --check` pass. Build retains the existing optional fontaine warning; no dependencies added.
 
 Local commits so far: `d401756` drafts; `7a257a7` evidence/material backend. No application migrations, push, PR, merge or deployment in this session. Full backend regression is reserved for final verification after the remaining slices.
+
+## Slice 4 — versioned BAST and correction after QA
+
+Implemented document headers, linear version chains, draft item changes, issue/pending, external accepted/rejected decisions, cancellation and supersession/replacement. Packages may include multiple compatible WOs. Every item must reference the current approved scope head; customer/context/site authority are rechecked under parent locks. Scope claims cover all report revisions and pending/accepted versions, preventing duplicate acceptance claims across documents. Issued content/items and final decisions are protected by MySQL triggers. Accepted scope cannot be retired or receive a successor.
+
+Private issued/decision uploads bind the exact version, observed version counter, report IDs and explicit all-scope document/authority attestation. PIC name/capacity/authority reference and all authorized sites are required. External decision time is preserved with microseconds separately from server recording time; historical external decision times are allowed, future times rejected. No response remains pending. There is no portal, paid signing provider, implied acceptance or exception closure.
+
+All-parent scope checks apply before list pagination and to detail/download; a technician assigned to only one WO cannot see or download a combined package. Ready metadata and byte integrity are checked; final facts remain preserved if a file later needs recovery. File keys never overwrite. A BAST technical rejection creates successors only for explicitly selected defect scopes/authors and moves only affected WOs to rework. Other approved/accepted scope evidence is retained.
+
+Koordinator can open approved-report corrections, atomically superseding affected pending packages across all their WOs and preserving old approval/evidence. Document fix returns awaiting_acceptance to pending_review; technical work uses rework. A bounded fresh-discovery retry handles an issue committing ahead of correction. A Koordinator can also assign a needs_revision successor to another eligible WO member after the original author loses access, preserving the original QA category and auditing the author change.
+
+Verification:
+- Compose `php artisan test --compact --stop-on-error --stop-on-failure tests/Feature/BastServiceTest.php tests/Feature/BastHttpTest.php tests/Feature/ServiceReportDraftTest.php tests/Feature/ServiceReportWorkflowTest.php`: **78 passed / 468 assertions**, 31.02 seconds. Covers seven acceptance/history rollback points with identical retries, immutable final evidence, rejected/partial packages, all-parent access/revocation, author replacement and legacy-compatible drafts.
+- Compose `php artisan test --compact --stop-on-error --stop-on-failure tests/Feature/BastConcurrencyTest.php`: **4 passed / 118 assertions**, 95.64 seconds. Independent processes/connections, prior snapshots and NOWAIT contention probes cover two issuers, accept/cancel, accept/correction, and issue/correction rediscovery. The test workers explicitly share the fake private disk's actual root; no application evidence is used.
+- Full frontend **122 passed**; typecheck/build/Pint/diff check pass. New forms preserve state on errors and refresh committed versions/command identities on success. Build retains only the existing optional fontaine warning. Browser/mobile/keyboard QA remains pending.
+- Added BAST tables and immutable-history triggers additively. No legacy approval, scope mapping, signer, acceptance, usage or file metadata was synthesized. Application migrations remain unapplied.
+
+Next: normal WO closure, hold/resume and authorized pre-execution cancellation; explicit ticket resolution after all dependent obligations, then full regression and local migration review. New lifecycle files currently being prepared are outside this slice's commit.

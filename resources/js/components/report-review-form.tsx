@@ -13,7 +13,7 @@ export function ReportReviewForm({ action, reportVersion, workOrderVersion, refr
         event.preventDefault();
         if (form.processing || submitting.current || !form.data.decision) return;
         submitting.current = true;
-        form.post(action.url, { preserveScroll: true, errorBag: 'review-report', onFinish: () => { submitting.current = false; } });
+        form.post(action.url, { preserveScroll: true, preserveState: 'errors', errorBag: 'review-report', onFinish: () => { submitting.current = false; } });
     }
     return <form onSubmit={submit} aria-label="Review laporan" className="panel flex flex-col gap-4">
         <h2 className="section-title">Keputusan review</h2>
