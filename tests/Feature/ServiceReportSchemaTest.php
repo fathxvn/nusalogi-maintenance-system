@@ -205,7 +205,8 @@ class ServiceReportSchemaTest extends TestCase
             fn () => DB::table('service_reports')
                 ->where('id', $first)
                 ->delete(),
-            1451,
+            1644,
+            '45000',
         );
 
         $this->assertDatabaseHas('work_order_scope_items', [
@@ -225,12 +226,13 @@ class ServiceReportSchemaTest extends TestCase
     private function assertConstraintViolation(
         callable $operation,
         int $driverCode,
+        string $sqlState = '23000',
     ): void {
         try {
             $operation();
         } catch (QueryException $exception) {
             $this->assertSame(
-                '23000',
+                $sqlState,
                 $exception->errorInfo[0],
             );
 

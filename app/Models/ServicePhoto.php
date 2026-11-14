@@ -24,4 +24,9 @@ class ServicePhoto extends Model
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
+
+    public function evidenceFile(): BelongsTo
+    {
+        return $this->belongsTo(PrivateEvidenceFile::class);
+    }
 }

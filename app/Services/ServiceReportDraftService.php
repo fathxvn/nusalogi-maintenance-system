@@ -18,6 +18,8 @@ class ServiceReportDraftService
         'action_taken',
         'result',
         'recommendation',
+        'checklist_snapshot',
+        'asset_results',
     ];
 
     public function __construct(
@@ -43,6 +45,17 @@ class ServiceReportDraftService
             'action_taken' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'result' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'recommendation' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'checklist_snapshot' => ['sometimes', 'nullable', 'array', 'list', 'max:100'],
+            'checklist_snapshot.*' => ['array:code,label,outcome,notes'],
+            'checklist_snapshot.*.code' => ['required', 'string', 'max:100', 'distinct'],
+            'checklist_snapshot.*.label' => ['required', 'string', 'max:255'],
+            'checklist_snapshot.*.outcome' => ['required', 'in:pass,fail,not_applicable'],
+            'checklist_snapshot.*.notes' => ['nullable', 'string', 'max:2000'],
+            'asset_results' => ['sometimes', 'nullable', 'array', 'list', 'max:100'],
+            'asset_results.*' => ['array:asset_id,result,notes'],
+            'asset_results.*.asset_id' => ['required', 'integer', 'min:1', 'distinct'],
+            'asset_results.*.result' => ['required', 'string', 'max:2000'],
+            'asset_results.*.notes' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
         $commandKey = $data['command_key'];
@@ -160,6 +173,8 @@ class ServiceReportDraftService
                     );
                 }
 
+                $this->validateAssets($workOrder, $data);
+
                 $report = new ServiceReport;
 
                 $report->forceFill([
@@ -177,9 +192,9 @@ class ServiceReportDraftService
                     'review_notes' => null,
                     'submitted_at' => null,
                     'reviewed_at' => null,
-                    'checklist_snapshot' => null,
+                    'checklist_snapshot' => $data['checklist_snapshot'],
                     'usage_snapshot' => null,
-                    'asset_results' => null,
+                    'asset_results' => $data['asset_results'],
                     'lock_version' => 0,
                 ])->save();
 
@@ -221,6 +236,17 @@ class ServiceReportDraftService
             'action_taken' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'result' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'recommendation' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'checklist_snapshot' => ['sometimes', 'nullable', 'array', 'list', 'max:100'],
+            'checklist_snapshot.*' => ['array:code,label,outcome,notes'],
+            'checklist_snapshot.*.code' => ['required', 'string', 'max:100', 'distinct'],
+            'checklist_snapshot.*.label' => ['required', 'string', 'max:255'],
+            'checklist_snapshot.*.outcome' => ['required', 'in:pass,fail,not_applicable'],
+            'checklist_snapshot.*.notes' => ['nullable', 'string', 'max:2000'],
+            'asset_results' => ['sometimes', 'nullable', 'array', 'list', 'max:100'],
+            'asset_results.*' => ['array:asset_id,result,notes'],
+            'asset_results.*.asset_id' => ['required', 'integer', 'min:1', 'distinct'],
+            'asset_results.*.result' => ['required', 'string', 'max:2000'],
+            'asset_results.*.notes' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
         $commandKey = $data['command_key'];
@@ -391,6 +417,8 @@ class ServiceReportDraftService
                     );
                 }
 
+                $this->validateAssets($workOrder, $changes);
+
                 $versionBefore = $report->lock_version;
 
                 $report->forceFill(array_merge($changes, [
@@ -419,5 +447,19 @@ class ServiceReportDraftService
         return ServiceReport::query()
             ->where('work_order_id', $workOrderId)
             ->findOrFail($history->subject_id);
+    }
+
+    /** @param array<string, mixed> $data */
+    private function validateAssets(WorkOrder $workOrder, array $data): void
+    {
+        $requested = array_map(fn (array $result): int => (int) $result['asset_id'], $data['asset_results'] ?? []);
+        if ($requested === []) {
+            return;
+        }
+        $valid = $workOrder->assets()->where('customer_site_id', $workOrder->customer_site_id)
+            ->whereIn('assets.id', $requested)->pluck('assets.id')->map(fn ($id): int => (int) $id)->all();
+        if (array_diff($requested, $valid) !== []) {
+            throw ValidationException::withMessages(['asset_results' => 'Hasil aset harus menunjuk aset WO pada site yang sama.']);
+        }
     }
 }

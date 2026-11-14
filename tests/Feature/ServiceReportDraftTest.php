@@ -650,6 +650,39 @@ class ServiceReportDraftTest extends TestCase
         ], $overrides);
     }
 
+    public function test_checklist_and_asset_results_are_validated_and_preserved_by_partial_updates(): void
+    {
+        [$actor, $wo, $scope] = $this->context();
+        $asset = $wo->site->assets()->create(['asset_code' => 'CCTV-REPORT', 'category' => 'cctv']);
+        $wo->assets()->attach($asset);
+        $service = app(ServiceReportDraftService::class);
+        $report = $service->createDraft($actor, $wo->id, $scope->id, $this->payload($wo, [
+            'checklist_snapshot' => [['code' => 'feed', 'label' => 'Live feed', 'outcome' => 'pass', 'notes' => 'Normal']],
+            'asset_results' => [['asset_id' => $asset->id, 'result' => 'Kamera normal']],
+        ]));
+        $this->assertSame('pass', $report->checklist_snapshot[0]['outcome']);
+        $this->assertSame($asset->id, $report->asset_results[0]['asset_id']);
+        $updated = $service->updateDraft($actor, $wo->id, $report->id, $this->updatePayload($report));
+        $this->assertSame($report->checklist_snapshot, $updated->checklist_snapshot);
+        $this->assertSame($report->asset_results, $updated->asset_results);
+    }
+
+    public function test_asset_results_cannot_claim_an_unrelated_asset(): void
+    {
+        [$actor, $wo, $scope] = $this->context();
+        [, $otherWo] = $this->context();
+        $asset = $otherWo->site->assets()->create(['asset_code' => 'OTHER-ASSET', 'category' => 'cctv']);
+        try {
+            app(ServiceReportDraftService::class)->createDraft($actor, $wo->id, $scope->id, $this->payload($wo, [
+                'asset_results' => [['asset_id' => $asset->id, 'result' => 'Unrelated']],
+            ]));
+            $this->fail('Unrelated asset result must fail.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(['Hasil aset harus menunjuk aset WO pada site yang sama.'], $exception->errors()['asset_results']);
+        }
+        $this->assertDatabaseCount('service_reports', 0);
+    }
+
     public static function unauthorizedActors(): array
     {
         return [

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportEvidenceController;
 use App\Http\Controllers\ServiceTicketController;
 use App\Http\Controllers\WorkOrderAssignmentController;
 use App\Http\Controllers\WorkOrderController;
@@ -45,6 +46,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/work-orders/{workOrder}/visits', [WorkVisitController::class, 'index'])
         ->middleware('role:admin,koordinator,teknisi')->name('work-orders.visits.index');
+
+    Route::post('/work-orders/{workOrder}/reports/{report}/evidence', [ReportEvidenceController::class, 'store'])
+        ->middleware('role:teknisi')->whereNumber('report')->name('work-orders.reports.evidence.store');
+    Route::get('/work-orders/{workOrder}/reports/{report}/evidence/{photo}', [ReportEvidenceController::class, 'show'])
+        ->middleware('role:admin,koordinator,teknisi')->whereNumber('report')->whereNumber('photo')->name('work-orders.reports.evidence.show');
 
     Route::middleware('role:koordinator')->group(function (): void {
         Route::get('/work-orders/{workOrder}/visits/create', [WorkVisitController::class, 'create'])->name('work-orders.visits.create');

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\MaterialUsageService;
 use App\Services\ServiceReportDraftService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -65,7 +66,7 @@ try {
 
     $action = $input['action'] ?? 'create';
 
-    if (! in_array($action, ['create', 'update'], true)) {
+    if (! in_array($action, ['create', 'update', 'material'], true)) {
         throw new RuntimeException('Unsupported concurrency action.');
     }
 
@@ -152,10 +153,12 @@ try {
 
     $actor = User::query()->findOrFail($input['actor_id']);
 
-    $service = $app->make(ServiceReportDraftService::class);
+    $service = $app->make($action === 'material' ? MaterialUsageService::class : ServiceReportDraftService::class);
     $report = $action === 'create'
         ? $service->createDraft($actor, (int) $input['work_order_id'], (int) $input['scope_item_id'], $input['payload'])
-        : $service->updateDraft($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']);
+        : ($action === 'material'
+            ? $service->record($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload'])
+            : $service->updateDraft($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']));
     $result = ['ok' => true, 'report_id' => $report->id, 'lock_version' => $report->lock_version];
 } catch (ValidationException $exception) {
     $result = [
