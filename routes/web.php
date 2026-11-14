@@ -70,6 +70,24 @@ Route::middleware('auth')->group(function () {
         Route::post('/work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
     });
 
+    Route::middleware('role:teknisi')->group(function (): void {
+        Route::post(
+            '/work-orders/{workOrder}/visits/{visit}/bookings/{booking}/start',
+            [WorkVisitController::class, 'start'],
+        )
+            ->whereNumber('visit')
+            ->whereNumber('booking')
+            ->name('work-orders.visits.bookings.start');
+
+        Route::post(
+            '/work-orders/{workOrder}/visits/{visit}/bookings/{booking}/complete',
+            [WorkVisitController::class, 'complete'],
+        )
+            ->whereNumber('visit')
+            ->whereNumber('booking')
+            ->name('work-orders.visits.bookings.complete');
+    });
+
     Route::get('/migration-test', function (Request $request) {
         return Inertia::render('migration-test', [
             'user' => [

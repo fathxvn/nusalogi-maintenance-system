@@ -62,6 +62,8 @@ export const visitStatusLabels: Record<string, string> = {
 };
 
 const conflictMessages: Record<string, string> = {
+    TECHNICIAN_ALREADY_WORKING: 'Anda masih memiliki sesi kerja yang berjalan. Selesaikan sesi tersebut sebelum memulai booking lain.',
+    BOOKING_ACTUAL_TIME_CONFLICT: 'Waktu selesai mendahului waktu mulai. Muat ulang data; hubungi Koordinator jika masalah berlanjut.',
     BOOKING_TIME_CONFLICT: 'Jadwal salah satu peserta bentrok. Tidak ada peserta yang dibooking; ubah pilihan atau muat ulang data.',
     VISIT_VERSION_CONFLICT: 'Data kunjungan sudah berubah. Muat ulang sebelum mencoba lagi.',
     COMMAND_KEY_REUSED: 'Permintaan ini sudah dipakai dengan data berbeda. Muat ulang untuk membuat permintaan baru.',

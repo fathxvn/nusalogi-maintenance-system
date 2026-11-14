@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Services\CancelVisitBookingService;
+use App\Services\VisitBookingExecutionService;
 use App\Services\VisitSchedulingService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -66,14 +67,14 @@ try {
 
     $action = $input['action'] ?? 'confirm';
 
-    if (! in_array($action, ['confirm', 'cancel', 'reschedule'], true)) {
+    if (! in_array($action, ['confirm', 'cancel', 'reschedule', 'start', 'complete'], true)) {
         throw new RuntimeException('Unsupported concurrency action.');
     }
 
     DB::connection()->beforeExecuting(
         function (string $sql, array $bindings) use (
             $input,
-            $metadata,
+            &$metadata,
             &$signalled,
             &$snapshotCount,
         ): void {
@@ -101,6 +102,21 @@ try {
             $snapshotCount = DB::table('visit_bookings')
                 ->where('technician_id', $input['technician_id'])
                 ->count();
+
+            if ($input['probe_lock'] ?? false) {
+                // PDO bypasses this callback. NOWAIT proves both live transactions
+                // reached a conflicting parent lock before either may proceed.
+                try {
+                    $probe = DB::connection()->getPdo()->prepare($sql.' nowait');
+                    $probe->execute($bindings);
+                    throw new RuntimeException('Expected a contended serialization lock.');
+                } catch (PDOException $exception) {
+                    if (($exception->errorInfo[1] ?? null) !== 3572) {
+                        throw $exception;
+                    }
+                    $metadata['lock_contended'] = true;
+                }
+            }
 
             $ready = json_encode([
                 ...$metadata,
@@ -152,7 +168,8 @@ try {
             'lock_version' => $visit->lock_version,
         ];
     } else {
-        $booking = $app->make(CancelVisitBookingService::class)->cancel(
+        $service = $action === 'cancel' ? CancelVisitBookingService::class : VisitBookingExecutionService::class;
+        $booking = $app->make($service)->{$action}(
             $actor,
             (int) $input['booking_id'],
             $input['payload'],
@@ -167,6 +184,8 @@ try {
             'visit_id' => $visit->id,
             'visit_status' => $visit->status,
             'lock_version' => $visit->lock_version,
+            'actual_start_at' => $booking->actual_start_at?->format('Y-m-d H:i:s.u'),
+            'actual_end_at' => $booking->actual_end_at?->format('Y-m-d H:i:s.u'),
         ];
     }
 } catch (ValidationException $exception) {

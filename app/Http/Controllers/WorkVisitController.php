@@ -8,6 +8,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkVisit;
 use App\Services\CancelVisitBookingService;
 use App\Services\M1CommandService;
+use App\Services\VisitBookingExecutionService;
 use App\Services\VisitSchedulingService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -37,7 +38,7 @@ class WorkVisitController extends Controller
             'bookings.technician:id,name',
             'previousVisit:id,visit_no',
             'successorVisit:id,previous_visit_id,visit_no',
-        ])->orderByDesc('visit_no')->paginate(10)->through(function (WorkVisit $visit) use ($workOrder, $canConfirm, $canCancel): array {
+        ])->orderByDesc('visit_no')->paginate(10)->through(function (WorkVisit $visit) use ($actor, $baseline, $workOrder, $canConfirm, $canCancel): array {
             $canReschedule = $canConfirm && $visit->status === 'confirmed' && $visit->successorVisit === null
                 && $visit->bookings->contains('status', 'confirmed')
                 && $visit->bookings->every(fn (VisitBooking $booking): bool => in_array($booking->status, ['confirmed', 'cancelled'], true)
@@ -61,9 +62,25 @@ class WorkVisitController extends Controller
                 'confirm_url' => $canConfirm && $visit->status === 'draft' && $visit->bookings->isEmpty()
                     ? route('work-orders.visits.confirm', [$workOrder, $visit]) : null,
                 'command_key' => $canConfirm ? (string) Str::uuid() : null,
-                'bookings' => $visit->bookings->sortBy('id')->values()->map(function (VisitBooking $booking) use ($workOrder, $visit, $canCancel): array {
+                'bookings' => $visit->bookings->sortBy('id')->values()->map(function (VisitBooking $booking) use ($actor, $baseline, $workOrder, $visit, $canCancel): array {
                     $cancellable = $canCancel && in_array($visit->status, ['confirmed', 'in_progress'], true)
                         && $booking->status === 'confirmed' && $booking->actual_start_at === null && $booking->actual_end_at === null;
+
+                    $executionAction = null;
+                    if ($baseline
+                        && $actor->hasRole('teknisi')
+                        && (int) $booking->technician_id === (int) $actor->id) {
+                        if (in_array($workOrder->status, self::CONFIRM_STATES, true)
+                            && in_array($visit->status, ['confirmed', 'in_progress'], true)
+                            && $booking->status === 'confirmed'
+                            && $booking->actual_start_at === null && $booking->actual_end_at === null) {
+                            $executionAction = 'start';
+                        } elseif ($workOrder->status === 'in_progress' && $visit->status === 'in_progress'
+                            && $booking->status === 'in_progress'
+                            && $booking->actual_start_at !== null && $booking->actual_end_at === null) {
+                            $executionAction = 'complete';
+                        }
+                    }
 
                     return [
                         'id' => $booking->id,
@@ -72,6 +89,11 @@ class WorkVisitController extends Controller
                         'ended_reason' => $booking->ended_reason,
                         'cancel_url' => $cancellable ? route('work-orders.visits.bookings.cancel', [$workOrder, $visit, $booking]) : null,
                         'command_key' => $cancellable ? (string) Str::uuid() : null,
+                        'actual_start_at' => $this->utc($booking->getRawOriginal('actual_start_at')),
+                        'actual_end_at' => $this->utc($booking->getRawOriginal('actual_end_at')),
+                        'execution_action' => $executionAction,
+                        'execution_url' => $executionAction !== null ? route('work-orders.visits.bookings.'.$executionAction, [$workOrder, $visit, $booking]) : null,
+                        'execution_command_key' => $executionAction !== null ? (string) Str::uuid() : null,
                     ];
                 })->all(),
             ];
@@ -151,6 +173,58 @@ class WorkVisitController extends Controller
         ]));
 
         return redirect()->route('work-orders.visits.index', $workOrder)->with('success', 'Jadwal pengganti dikonfirmasi. Riwayat kunjungan sebelumnya tetap tersimpan.');
+    }
+
+    public function start(
+        Request $request,
+        WorkOrder $workOrder,
+        int $visit,
+        int $booking,
+        M1CommandService $commands,
+        VisitBookingExecutionService $service,
+    ): RedirectResponse {
+        $actor = $commands->authorize($request->user(), ['teknisi']);
+        $workOrder = $this->visible($actor, $workOrder);
+
+        $target = $workOrder->visits()
+            ->findOrFail($visit)
+            ->bookings()
+            ->findOrFail($booking);
+        $service->start($actor, $target->id, $request->only([
+            'command_key',
+            'expected_visit_version',
+            'expected_booking_status',
+        ]));
+
+        return redirect()
+            ->route('work-orders.visits.index', $workOrder)
+            ->with('success', 'Sesi kerja dimulai. Waktu mulai aktual sudah tercatat.');
+    }
+
+    public function complete(
+        Request $request,
+        WorkOrder $workOrder,
+        int $visit,
+        int $booking,
+        M1CommandService $commands,
+        VisitBookingExecutionService $service,
+    ): RedirectResponse {
+        $actor = $commands->authorize($request->user(), ['teknisi']);
+        $workOrder = $this->visible($actor, $workOrder);
+
+        $target = $workOrder->visits()
+            ->findOrFail($visit)
+            ->bookings()
+            ->findOrFail($booking);
+        $service->complete($actor, $target->id, $request->only([
+            'command_key',
+            'expected_visit_version',
+            'expected_booking_status',
+        ]));
+
+        return redirect()
+            ->route('work-orders.visits.index', $workOrder)
+            ->with('success', 'Sesi kerja selesai. Lanjutkan dokumentasi hasil pekerjaan untuk proses review.');
     }
 
     private function visible(User $actor, WorkOrder $workOrder): WorkOrder
