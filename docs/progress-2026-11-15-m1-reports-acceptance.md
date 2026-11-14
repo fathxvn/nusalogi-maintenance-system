@@ -8,15 +8,15 @@ The two modified models and four untracked report files present at handoff are p
 Internal development baseline: Blueprint 0A, ratified ADR 0C, Phase 0D including A1–A6, and the visit execution checkpoint. This is not company SOP ratification. No invented legacy provenance, approval, acceptance or usage. Inventory, finance M2, new roles and exception closure remain outside scope.
 
 - [x] Draft report service/schema: audited create/update; author/member/account/parent/head/state guards; partial updates; server controls; version/idempotency; history rollback; independent MySQL process races. HTTP/UI follows in the report workflow slice.
-- [ ] Evidence/material: structured checklist and asset results; private validated uploads and scoped downloads; submitted evidence immutable across writers; append-only decimal material ledger and audited adjustments; reproducible submission snapshots.
-- [ ] Submission/review/revisions: scoped history and UI; frozen submission; one author; independent reviewer; document fix versus technical rework; all required scope heads determine WO status; transactions, versions, history and retries.
-- [ ] BAST: document/version/item chain; compatible multi-WO packages; all-parent authorization; approved head references; immutable issued content and accepted decisions; external evidence, authority, signer/recorder times; claim and stale-decision races; rejection follow-up.
-- [ ] Lifecycle/closure: review/rework/acceptance/closed; hold/resume/cancel within baseline authority; active booking impact; nonempty full required scope acceptance with evidence IDs in closure history; exception denied; multi-WO ticket resolution guarded; payment independent.
-- [ ] Final verification: full backend/frontend, typecheck, build, Pint, diff review; browser/mobile QA or explicit pending checklist.
+- [x] Evidence/material: structured checklist and asset results; private validated uploads and scoped downloads; submitted evidence immutable across writers; append-only decimal material ledger and audited adjustments; reproducible submission snapshots.
+- [x] Submission/review/revisions: scoped history and UI; frozen submission; one author; independent reviewer; document fix versus technical rework; all required scope heads determine WO status; transactions, versions, history and retries.
+- [x] BAST: document/version/item chain; compatible multi-WO packages; all-parent authorization; approved head references; immutable issued content and accepted decisions; external evidence, authority, signer/recorder times; claim and stale-decision races; rejection follow-up.
+- [x] Lifecycle/closure: review/rework/acceptance/closed; hold/resume/cancel within baseline authority; active booking impact; nonempty full required scope acceptance with evidence IDs in closure history; exception denied; multi-WO ticket resolution guarded; payment independent.
+- [x] Final automated verification (browser pending): full backend/frontend, typecheck, build, Pint, diff review; browser/mobile QA or explicit pending checklist.
 
 ## Environment and evidence limits
 
-Use `docker compose -p nusalogi-m1-test -f compose.yaml exec -T -u sail laravel.test` for commands. Database tests require the repository's MySQL `testing` / empty database URL guard; database suites run sequentially. Application QA accounts/data are preserved. No application migration has been applied by this session.
+Use `docker compose -p nusalogi-m1-test -f compose.yaml exec -T -u sail laravel.test` for commands. Database tests require the repository's MySQL `testing` / empty database URL guard; database suites run sequentially. Application QA accounts/data are preserved. Seven additive migrations were applied later in this session to the verified local application database; see final verification below. Earlier slice notes preserve the status at their commit.
 
 Boost is available through the installed `boost:execute-tool` command; search-docs was queried for Laravel 13 transactions/locking/validation/testing. Installed framework is 13.36.0, PHPUnit 12.5.39, PHP runtime image 8.5. `.ai/rules` is absent. Connected real-browser tooling has not been found; browser QA for new work is pending. Staging F01/F03 and company authority/retention decisions in Phase 0D §9.2 remain external rollout gates, not evidence of local implementation completion.
 
@@ -91,3 +91,58 @@ Added the Phase 0D ticket_attachments table/model/factory and private upload/dow
 An author can detach a mistaken attachment from a current editable draft with a reason and expected report version. The audit retains photo/file/hash metadata, ready bytes remain retained, and copies on submitted predecessor revisions stay unchanged. This enables a document-fix successor to replace mistaken evidence without altering the original submission. A second additive trigger migration uses current locking reads for terminal/accepted scope updates, including scope provenance fields.
 
 Evidence/ticket regression: **94 passed / 805 assertions**, 28.54 seconds, through Compose; full frontend **129 passed**, typecheck/build/Pint/diff check pass. Follow-up predecessor/successor preservation and scope/lifecycle/BAST guard regression: **44 passed / 336 assertions**, 36.87 seconds. The first attachment HTTP test expected 403 for a disabled session; corrected to the existing middleware contract (redirect to login).
+
+## Manual browser QA — pending, no pass claimed
+
+No real browser or browser automation tool/binary is available in this session. HTTP/component tests are automated evidence only. The previously reported execution-browser pass does not cover these new screens. Use separate authorized QA examples; preserve existing records and never enter fabricated customer acceptance on real work.
+
+- At desktop and 360–390 px width: WO → reports → scope draft, saved checklist/assets, evidence upload/download, material consume/return/reversal, submission, independent review and revision history. Check wrapping, no horizontal page overflow, empty/loading states and clear read-only submitted content.
+- Keyboard only: every labelled control, details/summary, file input, select, submit, errors/reload link, navigation and downloads; verify visible focus and sensible tab order.
+- Slow/error cases: repeated click, stale observed report/WO/BAST/ticket version, network retry, invalid file/quantity and revoked account/membership. Confirm error input is retained and successful forms receive fresh versions/keys. Save draft before changing evidence/material.
+- BAST: compatible combined-WO package, explicit scope/PIC/site authority, issued and signed evidence, external versus recorded decision times, reject/document fix/technical rework, immutable accepted versions and cross-parent technician denial. Never use timeout as acceptance.
+- Lifecycle/ticket: full required acceptance enables close; missing/partial acceptance blocks; hold/resume preserves prior state; pre-execution cancellation preserves provenance; ticket with another open WO cannot resolve. Validate role-specific controls and terminal read-only state.
+
+Business/rollout gates remain: Phase 0D F01 staging DDL/locking validation and F03 cutover/reconciliation; company-approved authority for cancelling already-executed or partially accepted work; authorized retention/grace-period policy before enabling cleanup. Those paths remain restricted and are not enabled through guessed rules. The code treats this as an internal engineering baseline.
+
+## Local migration/data verification
+
+Verified `php artisan env --no-interaction` = local and Boost read-only DatabaseQuery actual database = nusalogi_maintenance in Compose project nusalogi-m1-test. Before migration: 4 users, 3 WOs, 0 service reports, 0 tickets. Saved a private single-transaction mysqldump (with routines/triggers) at `/tmp/nusalogi-m1-local-backup.f4FrJT/application-before.sql`; this is a local temporary artifact, not committed.
+
+`php artisan migrate --no-interaction` applied these seven pending migrations in batch 2: report revisions; private evidence/material; lifecycle timestamps; BAST; current-read scope INSERT guard; ticket attachments; current-read scope UPDATE guard. `migrate:status` confirms all ran. No reset, fresh migration, seeder, account change or fabricated operational evidence was run on the application database. Nullable additions retain legacy unknowns; no backfill approval/acceptance/usage/timestamp was synthesized. Normal M1 commands require explicit known origin/context/scope.
+
+Before/after counts plus original-column row fingerprints match for all 19 existing domain/security tables, including users, WOs, membership, visits/bookings, scopes, reports/photos and finance. New tables remain empty. The comparison manifest is stored privately beside the backup. Tests continue to use the isolated guarded MySQL testing database; local migration verification is separate from staging F01.
+
+## Completion matrix
+
+| Area | Implemented and automatically verified | Remaining status |
+|---|---|---|
+| Draft reports | Author/member/current-head/parent/account/version/idempotency/history and process races | Complete backend; new UI browser QA pending |
+| Evidence/material | Structured content, private ticket/report/BAST files, immutable submissions, draft detach, decimal ledger and snapshots | Browser/mobile/keyboard QA pending; authorized retention policy required before cleanup |
+| Submission/revision/review | Scoped UI/history, independent reviewer, document fix and technical rework, all-required-head aggregation | Browser QA pending |
+| BAST/customer acceptance | Multi-WO versions, explicit authority/evidence, stale/claim guards, rejection/correction and immutable final facts | Browser QA pending; real customer authority evidence remains operational input |
+| WO/ticket lifecycle | Hold/resume, pre-execution cancel, full normal closure proof, explicit multi-WO ticket resolution, no finance dependency | Browser QA pending; cancellation after execution/partial acceptance remains blocked without company authority |
+| Migration/rollout | Local additive migration, backup and preservation review | Staging F01 and F03 cutover/reconciliation pending; no production rollout |
+
+**M1 is not declared fully accepted or rollout-ready while these QA/authority gates remain.** No push, PR, merge or deployment was performed.
+
+## Final automated verification and handoff
+
+Final code under test: `b8c05c0` on feat/m1-service-reports. No code changed during or after the full backend run.
+
+- Compose `php artisan test --compact --no-ansi`: **1,137 passed / 9,178 assertions**, **1,130.08 seconds**, exit 0. This is the actual new full run, replacing the historical 976-test baseline. Database suites ran sequentially against guarded MySQL testing. Includes existing ticket/WO/visit/execution/auth/finance regressions and new report/evidence/material/BAST/lifecycle tests.
+- Compose `npm run test:frontend`: **129 passed**, 0 failed/skipped.
+- Compose `npm run typecheck` and `npm run build`: pass. Build retains only the existing optional fontaine warning; no dependency change.
+- Host PHP 8.5.4 `vendor/bin/pint --dirty --format agent`: pass. `git diff --check` and staged diff checks: pass.
+- Process concurrency includes independent MySQL connections, REPEATABLE-READ snapshots, two live transactions and NOWAIT contention probes for draft create/update/retries, material returns, submission/review/revision, BAST issue/decision/correction and closure. Scope insertion versus closure uses an explicitly testing-only direct-writer probe and terminal DB trigger; it is not a production scope-editing UI.
+- Browser/mobile/keyboard: **pending**, not represented as passed by HTTP/component tests. Manual checklist above.
+- Seven application migrations applied locally (batch 2), private backup retained, all 19 existing domain/security table data fingerprints/counts unchanged. No application seed/reset or invented historical facts.
+
+Local implementation commits:
+1. `d401756` — versioned service report drafts.
+2. `7a257a7` — private report evidence and material ledger.
+3. `b131ec5` — report submission/review and technician interface.
+4. `a72bab4` — versioned customer acceptance and corrections.
+5. `7c6372c` — audited WO closure and ticket lifecycle.
+6. `b8c05c0` — private ticket attachments and draft evidence correction.
+
+Final checkpoint documentation is committed separately after these results. Remaining work is the browser checklist, staging F01/F03 and explicit company authority/retention gates described above. No independent requested coding work is intentionally deferred to those gates. M1 remains partially accepted pending that QA and those decisions, rather than being declared fully complete. Working tree is expected clean after the checkpoint commit. No push, PR, merge or deploy.
