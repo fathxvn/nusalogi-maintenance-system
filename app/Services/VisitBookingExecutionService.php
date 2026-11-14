@@ -232,6 +232,8 @@ class VisitBookingExecutionService
                                 $workOrder->forceFill([
                                     'status' => 'in_progress',
                                     'lock_version' => (int) $workOrder->lock_version + 1,
+                                    'started_at' => $workOrderStatusBefore === 'assigned' && $workOrder->started_at === null
+                                        ? $actualTime : $workOrder->started_at,
                                 ])->save();
 
                                 $workOrder->updates()->create([

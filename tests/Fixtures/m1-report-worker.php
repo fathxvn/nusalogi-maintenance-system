@@ -1,12 +1,16 @@
 <?php
 
 use App\Models\User;
+use App\Models\WorkOrder;
 use App\Services\BastService;
 use App\Services\MaterialUsageService;
 use App\Services\ReportCorrectionService;
 use App\Services\ServiceReportDraftService;
 use App\Services\ServiceReportWorkflowService;
+use App\Services\ServiceTicketLifecycleService;
+use App\Services\WorkOrderLifecycleService;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -61,7 +65,7 @@ try {
     if (! is_array($input)
         || ! in_array(
             $input['barrier_table'] ?? null,
-            ['users', 'work_orders', 'customers'],
+            ['users', 'work_orders', 'customers', 'service_tickets'],
             true,
         )) {
         throw new RuntimeException('Invalid concurrency barrier input.');
@@ -73,7 +77,7 @@ try {
 
     $action = $input['action'] ?? 'create';
 
-    if (! in_array($action, ['create', 'update', 'material', 'submit', 'review', 'revise', 'bast.issue', 'bast.decide', 'bast.cancel', 'correction'], true)) {
+    if (! in_array($action, ['create', 'update', 'material', 'submit', 'review', 'revise', 'bast.issue', 'bast.decide', 'bast.cancel', 'correction', 'wo.close', 'scope.append', 'ticket.duplicate'], true)) {
         throw new RuntimeException('Unsupported concurrency action.');
     }
 
@@ -160,7 +164,21 @@ try {
 
     $actor = User::query()->findOrFail($input['actor_id']);
 
-    if (str_starts_with($action, 'bast.')) {
+    if ($action === 'wo.close') {
+        $report = $app->make(WorkOrderLifecycleService::class)->close($actor, (int) $input['work_order_id'], $input['payload']);
+    } elseif ($action === 'ticket.duplicate') {
+        $report = $app->make(ServiceTicketLifecycleService::class)->change($actor, (int) $input['ticket_id'], 'duplicate', $input['payload']);
+    } elseif ($action === 'scope.append') {
+        // Testing-only direct-writer probe for the database terminal scope fence.
+        $report = DB::transaction(function () use ($input, $actor): WorkOrder {
+            $wo = WorkOrder::query()->lockForUpdate()->findOrFail($input['work_order_id']);
+            $wo->scopeItems()->create(['scope_no' => 2, 'description' => 'Concurrent required scope',
+                'acceptance_criteria' => 'Must be accepted', 'is_required' => true, 'disposition' => 'active',
+                'created_by' => $actor->id, 'created_at' => now()]);
+
+            return $wo;
+        });
+    } elseif (str_starts_with($action, 'bast.')) {
         $method = substr($action, 5);
         $report = $app->make(BastService::class)->{$method}($actor, (int) $input['version_id'], $input['payload']);
     } elseif ($action === 'correction') {
@@ -177,6 +195,11 @@ try {
                 : $service->updateDraft($actor, (int) $input['work_order_id'], (int) $input['report_id'], $input['payload']));
     }
     $result = ['ok' => true, 'report_id' => $report->id, 'lock_version' => $report->lock_version];
+} catch (QueryException $exception) {
+    if (($exception->errorInfo[0] ?? null) !== '45000') {
+        throw $exception;
+    }
+    $result = ['ok' => false, 'status' => 409, 'errors' => ['scope' => ['TERMINAL_WORK_ORDER_SCOPE_IMMUTABLE']]];
 } catch (ValidationException $exception) {
     $result = [
         'ok' => false,

@@ -13,6 +13,7 @@ use App\Http\Controllers\ServiceReportController;
 use App\Http\Controllers\ServiceTicketController;
 use App\Http\Controllers\WorkOrderAssignmentController;
 use App\Http\Controllers\WorkOrderController;
+use App\Http\Controllers\WorkOrderLifecycleController;
 use App\Http\Controllers\WorkVisitController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/tickets/{ticket}', [ServiceTicketController::class, 'show'])->name('tickets.show');
         Route::post('/tickets/{ticket}/triage', [ServiceTicketController::class, 'triage'])->middleware('role:koordinator')->name('tickets.triage');
         Route::post('/tickets/{ticket}/approve', [ServiceTicketController::class, 'approve'])->middleware('role:koordinator')->name('tickets.approve');
+        Route::post('/tickets/{ticket}/lifecycle/{action}', [ServiceTicketController::class, 'lifecycle'])->middleware('role:koordinator')->whereIn('action', ['resolve', 'wait_information', 'await_authorization', 'reject', 'cancel', 'duplicate'])->name('tickets.lifecycle');
     });
     Route::get('/dashboard', DashboardController::class)
         ->middleware('role:admin,koordinator,teknisi')
@@ -48,6 +50,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/work-orders/{workOrder}/visits', [WorkVisitController::class, 'index'])
         ->middleware('role:admin,koordinator,teknisi')->name('work-orders.visits.index');
+
+    Route::get('/work-orders/{workOrder}/lifecycle', [WorkOrderLifecycleController::class, 'show'])->middleware('role:admin,koordinator,teknisi')->name('work-orders.lifecycle.show');
+    Route::post('/work-orders/{workOrder}/lifecycle/close', [WorkOrderLifecycleController::class, 'close'])->middleware('role:koordinator')->name('work-orders.lifecycle.close');
+    Route::post('/work-orders/{workOrder}/lifecycle/{action}', [WorkOrderLifecycleController::class, 'change'])->middleware('role:koordinator,teknisi')->whereIn('action', ['hold', 'resume', 'cancel', 'context'])->name('work-orders.lifecycle.change');
 
     Route::get('/work-orders/{workOrder}/acceptance', [BastController::class, 'index'])->middleware('role:admin,koordinator,teknisi')->name('work-orders.acceptance.index');
     Route::get('/bast/{version}', [BastController::class, 'show'])->middleware('role:admin,koordinator,teknisi')->whereNumber('version')->name('bast.show');

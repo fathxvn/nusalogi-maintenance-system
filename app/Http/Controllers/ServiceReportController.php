@@ -47,7 +47,7 @@ class ServiceReportController extends Controller
             'legacyReports' => $wo->reports()->whereNull('scope_item_id')->orderByDesc('id')->get()->map(fn (ServiceReport $report): array => [
                 'id' => $report->id, 'status' => $report->review_status, 'url' => route('work-orders.reports.show', [$wo, $report]),
             ])->all(),
-            'links' => ['index' => route('work-orders.index'), 'refresh' => route('work-orders.reports.index', $wo), 'visits' => route('work-orders.visits.index', $wo), 'acceptance' => route('work-orders.acceptance.index', $wo)],
+            'links' => ['index' => route('work-orders.index'), 'refresh' => route('work-orders.reports.index', $wo), 'visits' => route('work-orders.visits.index', $wo), 'acceptance' => route('work-orders.acceptance.index', $wo), 'lifecycle' => route('work-orders.lifecycle.show', $wo)],
             'unavailableReason' => $baseline ? null : 'Laporan historis tetap dapat dibaca. Origin, konteks acceptance, dan scope wajib M1 harus diverifikasi sebelum memakai workflow baru.',
         ]);
     }

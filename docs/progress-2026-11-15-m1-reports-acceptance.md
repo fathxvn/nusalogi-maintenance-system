@@ -68,3 +68,18 @@ Verification:
 - Added BAST tables and immutable-history triggers additively. No legacy approval, scope mapping, signer, acceptance, usage or file metadata was synthesized. Application migrations remain unapplied.
 
 Next: normal WO closure, hold/resume and authorized pre-execution cancellation; explicit ticket resolution after all dependent obligations, then full regression and local migration review. New lifecycle files currently being prepared are outside this slice's commit.
+
+## Slice 5 — normal closure and ticket lifecycle
+
+Normal closure is coordinator-only, versioned and audited. It locks the complete parent set, reads every required active scope head again and requires compatible accepted BAST items plus real QA/decision history, signer/authority/time facts and ready, verified private evidence. Empty/partial/pending/rejected/stale or legacy unproven coverage cannot close. History retains exact scope/report/item/version/file IDs; closed_at is separate from completed_at/verified_by. Exception closure is rejected and finance tables are never consulted. Ticket resolution is an explicit human command: all dependent WOs must have audited closed/cancelled disposition and no open required obligations. It cannot resolve when just one WO is done.
+
+Hold/resume records and restores only the audited previous state. Running sessions prevent hold. Normal pre-execution cancellation atomically cancels future visits/bookings and gives scopes an explicit disposition, preserves membership and actual-time provenance, and refuses existing report/material/execution evidence or ambiguous authority. Accepted work is never silently cancelled. A coordinator can explicitly establish a shared acceptance context before any BAST reference, with a reason/history. M1 start can no longer bypass the versioned booking command; started_at is recorded only on an actual assigned-to-in_progress start, without inventing legacy timestamps.
+
+Ticket UI adds reasoned waiting-information/authorization, rejection, duplicate/canonical, cancellation and remote/all-WO resolution actions. Awaiting authorization can be approved only with explicit known coverage and a valid reference when authorized. WO lifecycle UI shows per-scope readiness, status history and closure basis, with coordinator/member action boundaries, loading and conflict recovery. Browser/mobile/keyboard checks remain pending.
+
+Verification through Compose:
+- Lifecycle, ticket regression, execution and assignment: **229 passed / 1,922 assertions**, 32.48 seconds.
+- Closure concurrency: **2 passed / 57 assertions**, 45.11 seconds. Two independent live MySQL REPEATABLE-READ transactions prove NOWAIT contention with an existing snapshot. Two closers commit one closure/history; closure versus a testing-only direct required-scope writer either sees the added unaccepted scope or the writer is rejected after closure. Added an incremental current-read parent guard in the scope INSERT trigger to fence a writer with an older snapshot. This probe is not a new scope-editing UI.
+- Full frontend: **127 passed**; typecheck/build/Pint/diff check pass (existing optional fontaine warning only).
+
+Application migrations are still unapplied. Final full backend regression, application migration/data review and remaining evidence polish follow. No push, PR, merge or deployment.

@@ -11,7 +11,7 @@ export default function ReportIndex({ workOrder, scopes, legacyReports, links, u
             <p className="text-sm text-muted-foreground break-all">{workOrder.number} · {workOrder.status}</p>
             <h2 className="section-title">{workOrder.title}</h2>
             <p className="text-sm text-muted-foreground">{workOrder.customer ?? '—'} · {workOrder.site ?? '—'}</p>
-            <div className="flex flex-wrap gap-3"><Link href={links.index} className={buttonVariants({ variant: 'outline' })}>Work Order</Link><Link href={links.visits} className={buttonVariants({ variant: 'outline' })}>Kunjungan</Link>{links.acceptance && <Link href={links.acceptance} className={buttonVariants({ variant: 'outline' })}>BAST / Acceptance</Link>}</div>
+            <div className="flex flex-wrap gap-3"><Link href={links.index} className={buttonVariants({ variant: 'outline' })}>Work Order</Link><Link href={links.visits} className={buttonVariants({ variant: 'outline' })}>Kunjungan</Link>{links.acceptance && <Link href={links.acceptance} className={buttonVariants({ variant: 'outline' })}>BAST / Acceptance</Link>}{links.lifecycle && <Link href={links.lifecycle} className={buttonVariants({ variant: 'outline' })}>Status &amp; penutupan</Link>}</div>
             {unavailableReason && <p role="status" className="text-sm text-muted-foreground">{unavailableReason}</p>}
         </section>
         {scopes.length === 0 && <div className="panel empty-state" role="status">Belum ada scope M1 yang telah diverifikasi.</div>}

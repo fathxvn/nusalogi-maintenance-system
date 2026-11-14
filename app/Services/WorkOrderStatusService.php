@@ -66,6 +66,11 @@ class WorkOrderStatusService
             }
 
             if ($toStatus === 'in_progress') {
+                if (in_array($wo->origin_kind, ['ticket', 'manual'], true)) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Gunakan start booking kunjungan M1 untuk mencatat waktu aktual.',
+                    ]);
+                }
                 $technician = User::query()->lockForUpdate()->find($actor->id);
                 $isAssigned = $technician && $technician->hasRole('teknisi')
                     && $technician->isActive() && $technician->isApproved()

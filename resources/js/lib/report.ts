@@ -27,7 +27,7 @@ export type ReportIndexProps = {
     workOrder: ReportWorkOrder;
     scopes: { id: number; scope_no: number; description: string; acceptance_criteria: string; is_required: boolean; disposition: string; create: ReportAction | null; revisions: ReportRevision[] }[];
     legacyReports: { id: number; status: string; url: string }[]; unavailableReason: string | null;
-    links: { index: string; refresh: string; visits: string; acceptance?: string };
+    links: { index: string; refresh: string; visits: string; acceptance?: string; lifecycle?: string };
 };
 
 export function reportStatus(status: string): string {
@@ -36,6 +36,25 @@ export function reportStatus(status: string): string {
 
 export function reportError(message: string): string {
     const messages: Record<string, string> = {
+        ALL_REQUIRED_SCOPES_MUST_BE_ACCEPTED: 'Seluruh scope wajib aktif harus memiliki revisi approved dan acceptance customer yang valid.',
+        REQUIRED_SCOPES_MISSING: 'WO memerlukan sedikitnya satu scope wajib aktif untuk ditutup.',
+        EXCEPTION_CLOSURE_DISABLED: 'Penutupan melalui pengecualian tidak tersedia pada M1.',
+        ACTIVE_BOOKINGS_BLOCK_CLOSURE: 'Selesaikan atau batalkan booking aktif yang masih tersisa sebelum menutup WO.',
+        ACTIVE_BOOKING_BLOCKS_HOLD: 'Selesaikan sesi kerja yang sedang berjalan sebelum menahan WO.',
+        CANCELLATION_AUTHORITY_REQUIRED: 'Pembatalan pekerjaan yang telah dimulai memerlukan keputusan kewenangan khusus.',
+        HOLD_PROVENANCE_REQUIRED: 'Asal status hold belum terverifikasi. Koordinator perlu meninjau histori WO.',
+        CONTEXT_REFERENCED_BY_BAST: 'Konteks ini sudah dirujuk oleh BAST. Paket harus ditangani melalui versi dan histori yang sah.',
+        CLOSURE_PROOF_CHANGED: 'Bukti acceptance berubah saat diperiksa. Muat ulang dan coba lagi.',
+        CLOSURE_PROVENANCE_REQUIRED: 'Bukti dan histori closure belum lengkap atau belum terverifikasi.',
+        TICKET_VERSION_CONFLICT: 'Ticket berubah. Muat ulang data sebelum mengirim keputusan baru.',
+        TICKET_STATE_CONFLICT: 'Tindakan tidak tersedia pada status ticket sekarang.',
+        TICKET_WORK_ORDERS_STILL_OPEN: 'Masih ada WO pada ticket ini yang belum selesai atau memiliki disposition sah.',
+        TICKET_OPERATIONAL_SCOPES_STILL_OPEN: 'Masih ada scope operasional yang belum dituntaskan dengan bukti yang sah.',
+        TICKET_FULFILLMENT_PROVENANCE_REQUIRED: 'Histori penyelesaian WO belum terverifikasi; ticket tetap terbuka untuk review.',
+        REMOTE_RESOLUTION_NOT_ELIGIBLE: 'Resolusi remote memerlukan hasil terkonfirmasi, coverage jelas, dan tidak boleh melewati WO yang sudah ada.',
+        TICKET_CANCELLATION_REQUIRES_CHILD_DISPOSITION: 'Tinjau dan tangani seluruh WO terkait sebelum membatalkan ticket.',
+        CANONICAL_TICKET_REQUIRED: 'Pilih ticket canonical yang berbeda dan bukan duplikat.',
+
         REWORK_CATEGORY_MISMATCH: 'Jenis koreksi harus mengikuti kategori keputusan QA sebelumnya.',
         BAST_PARENT_SET_CHANGED: 'Isi paket atau peserta berubah. Muat ulang dan susun ulang paket.',
         BAST_APPROVED_HEAD_REQUIRED: 'Setiap scope harus memakai revisi terbaru yang approved dan tidak boleh dimasukkan dua kali.',
