@@ -83,6 +83,7 @@ class ServiceReportController extends Controller
                     'id' => $photo->id, 'phase' => $photo->phase, 'caption' => $photo->caption,
                     'name' => $photo->evidenceFile?->original_name ?? 'Evidence historis belum diverifikasi',
                     'download_url' => $photo->evidenceFile?->state === 'ready' ? route('work-orders.reports.evidence.show', [$wo, $target, $photo]) : null,
+                    'detach' => $editable ? $this->action('work-orders.reports.evidence.destroy', [$wo, $target, $photo]) : null,
                 ])->all()],
             'revisions' => $revisions->map(fn (ServiceReport $revision): array => ['id' => $revision->id,
                 'revision_no' => $revision->revision_no, 'status' => $revision->review_status,

@@ -71,12 +71,19 @@ class ServiceTicketController extends Controller
             'canonicalTickets' => $actor->hasRole('koordinator') && in_array($ticket->status, ['new', 'triaged'], true)
                 ? ServiceTicket::query()->whereKeyNot($ticket->id)->where('status', '!=', 'duplicate')->orderByDesc('id')->get(['id', 'ticket_number'])->toArray() : [],
             'decisionNote' => OperationHistory::query()->where('subject_type', 'service_ticket')->where('subject_id', $ticket->id)->orderByDesc('id')->first()?->reason,
+            'attachments' => $ticket->attachments()->with('evidenceFile')->orderBy('id')->get()->map(fn ($attachment): array => [
+                'id' => $attachment->id, 'purpose' => $attachment->purpose, 'name' => $attachment->evidenceFile->original_name,
+                'attached_at' => $attachment->attached_at->toISOString(),
+                'download_url' => $attachment->evidenceFile->state === 'ready' ? route('tickets.evidence.show', [$ticket, $attachment]) : null,
+            ])->all(),
+            'evidenceAction' => ! in_array($ticket->status, ['resolved', 'rejected', 'duplicate', 'cancelled'], true)
+                ? ['url' => route('tickets.evidence.store', $ticket), 'command_key' => (string) Str::uuid(), 'upload_key' => (string) Str::uuid()] : null,
             'sites' => $this->sites(),
             'commandKeys' => ['triage' => (string) Str::uuid(), 'approve' => (string) Str::uuid()],
             'workOrders' => $ticket->workOrders()->visibleTo($actor)->latest('id')->get(['id', 'wo_number', 'status'])
                 ->map(fn ($wo): array => [...$wo->toArray(), 'show_url' => route('work-orders.reports.index', $wo)]),
             'links' => [
-                'index' => route('tickets.index'),
+                'index' => route('tickets.index'), 'refresh' => route('tickets.show', $ticket),
                 'triage' => $actor->hasRole('koordinator') && in_array($ticket->status, ['new', 'triaged', 'waiting_information'], true)
                     ? route('tickets.triage', $ticket)
                     : null,

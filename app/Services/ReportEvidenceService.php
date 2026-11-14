@@ -66,4 +66,32 @@ class ReportEvidenceService
 
         return ServicePhoto::query()->where('service_report_id', $reportId)->findOrFail($history->subject_id);
     }
+
+    public function detach(User $actor, int $workOrderId, int $reportId, int $photoId, array $payload): ServiceReport
+    {
+        $this->commands->authorize($actor, ['teknisi']);
+        $data = Validator::make($payload, [
+            'command_key' => ['required', 'uuid'], 'expected_report_version' => ['required', 'integer', 'min:0'],
+            'reason' => ['required', 'string', 'max:2000'],
+        ])->validate();
+        $data['expected_report_version'] = (int) $data['expected_report_version'];
+        $history = $this->commands->run($actor, $data['command_key'], 'report.evidence.detach', [
+            'work_order_id' => $workOrderId, 'report_id' => $reportId, 'photo_id' => $photoId, 'input' => $data,
+        ], ['teknisi'], fn (): array => $this->context->lockRoots($actor, $workOrderId, $reportId),
+            function (array $context) use ($data, $reportId, $photoId): array {
+                $report = $this->context->draft($context, $reportId, $data['expected_report_version']);
+                $photo = $report->photos()->lockForUpdate()->findOrFail($photoId);
+                $file = $photo->evidence_file_id ? PrivateEvidenceFile::query()->lockForUpdate()->findOrFail($photo->evidence_file_id) : null;
+                $facts = ['report_id' => $report->id, 'scope_item_id' => $report->scope_item_id,
+                    'photo_id' => $photo->id, 'file_id' => $file?->id, 'sha256' => $file?->sha256,
+                    'phase' => $photo->phase, 'caption' => $photo->caption, 'file_retained' => true];
+                $photo->delete();
+                $report->increment('lock_version');
+
+                return ['subject_type' => 'service_report', 'subject_id' => $report->id, 'from_state' => 'draft', 'to_state' => 'draft',
+                    'reason' => $data['reason'], 'facts' => [...$facts, 'lock_version' => $report->lock_version]];
+            });
+
+        return ServiceReport::query()->findOrFail($history->subject_id);
+    }
 }

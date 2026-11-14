@@ -83,3 +83,11 @@ Verification through Compose:
 - Full frontend: **127 passed**; typecheck/build/Pint/diff check pass (existing optional fontaine warning only).
 
 Application migrations are still unapplied. Final full backend regression, application migration/data review and remaining evidence polish follow. No push, PR, merge or deployment.
+
+## Slice 6 — ticket attachments and draft evidence correction
+
+Added the Phase 0D ticket_attachments table/model/factory and private upload/download for Admin/Koordinator. Attachments are bound to ticket, purpose, uploader and observed ticket version, have immutable references and atomic command audit, and never approve/resolve a ticket automatically. Terminal tickets reject new attachments while successful retries remain safe. Downloads check the current account and nested ticket; WO technician membership does not grant ticket access. No application records or evidence were synthesized.
+
+An author can detach a mistaken attachment from a current editable draft with a reason and expected report version. The audit retains photo/file/hash metadata, ready bytes remain retained, and copies on submitted predecessor revisions stay unchanged. This enables a document-fix successor to replace mistaken evidence without altering the original submission. A second additive trigger migration uses current locking reads for terminal/accepted scope updates, including scope provenance fields.
+
+Evidence/ticket regression: **94 passed / 805 assertions**, 28.54 seconds, through Compose; full frontend **129 passed**, typecheck/build/Pint/diff check pass. Follow-up predecessor/successor preservation and scope/lifecycle/BAST guard regression: **44 passed / 336 assertions**, 36.87 seconds. The first attachment HTTP test expected 403 for a disabled session; corrected to the existing middleware contract (redirect to login).

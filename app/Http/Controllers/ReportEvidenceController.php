@@ -14,6 +14,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportEvidenceController extends Controller
 {
+    public function destroy(Request $request, WorkOrder $workOrder, int $report, int $photo, ReportEvidenceService $service): RedirectResponse
+    {
+        $wo = WorkOrder::query()->visibleTo($request->user())->findOrFail($workOrder->id);
+        $service->detach($request->user(), $wo->id, $report, $photo, $request->only(['command_key', 'expected_report_version', 'reason']));
+
+        return back()->with('success', 'Lampiran draft dilepas; file dan evidence revisi lama dipertahankan.');
+    }
+
     public function store(Request $request, WorkOrder $workOrder, int $report, M1CommandService $commands, ReportEvidenceService $service): RedirectResponse
     {
         $actor = $commands->authorize($request->user(), ['teknisi']);

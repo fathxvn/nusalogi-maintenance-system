@@ -11,6 +11,7 @@ use App\Models\WorkOrderScopeItem;
 use App\Services\CreateWorkOrderService;
 use App\Services\ReportEvidenceService;
 use App\Services\ServiceReportDraftService;
+use App\Services\ServiceReportWorkflowService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -152,6 +153,104 @@ class ReportEvidenceTest extends TestCase
         $wo->technicians()->detach($actor);
         $this->expectException(AuthorizationException::class);
         $service->upload($actor, $wo->id, $report->id, $upload, $input);
+    }
+
+    public function test_detaching_draft_evidence_retains_ready_file_and_retries_without_deleting_other_revisions(): void
+    {
+        Storage::fake('evidence');
+        [$actor, $wo, , $report] = $this->draft();
+        $service = app(ReportEvidenceService::class);
+        $upload = UploadedFile::fake()->image('wrong.jpg');
+        $file = $service->upload($actor, $wo->id, $report->id, $upload, $this->uploadPayload($upload));
+        $photo = $service->attach($actor, $wo->id, $report->id, ['command_key' => (string) Str::uuid(),
+            'expected_report_version' => 0, 'evidence_file_id' => $file->id, 'phase' => 'other']);
+        $input = ['command_key' => (string) Str::uuid(), 'expected_report_version' => 1, 'reason' => 'Lampiran salah dipilih'];
+        $result = $service->detach($actor, $wo->id, $report->id, $photo->id, $input);
+        $this->assertSame(2, $result->lock_version);
+        $this->assertSame(2, $service->detach($actor, $wo->id, $report->id, $photo->id, $input)->lock_version);
+        $this->assertSame(0, $report->photos()->count());
+        $this->assertSame('ready', $file->fresh()->state);
+        Storage::disk('evidence')->assertExists($file->storage_key);
+        $audit = OperationHistory::query()->where('action', 'report.evidence.detach')->sole();
+        $this->assertSame($photo->id, $audit->facts['photo_id']);
+        $this->assertTrue($audit->facts['file_retained']);
+        $this->assertConflict(fn () => $service->detach($actor, $wo->id, $report->id, $photo->id, [...$input, 'reason' => 'Changed']), 'COMMAND_KEY_REUSED');
+        $wo->technicians()->detach($actor);
+        $this->expectException(AuthorizationException::class);
+        $service->detach($actor, $wo->id, $report->id, $photo->id, $input);
+    }
+
+    public function test_detach_history_failure_rolls_back_reference_and_version(): void
+    {
+        Storage::fake('evidence');
+        [$actor, $wo, , $report] = $this->draft();
+        $service = app(ReportEvidenceService::class);
+        $upload = UploadedFile::fake()->image('wrong.jpg');
+        $file = $service->upload($actor, $wo->id, $report->id, $upload, $this->uploadPayload($upload));
+        $photo = $service->attach($actor, $wo->id, $report->id, ['command_key' => (string) Str::uuid(),
+            'expected_report_version' => 0, 'evidence_file_id' => $file->id, 'phase' => 'other']);
+        $failed = false;
+        DB::connection()->beforeExecuting(function (string $sql) use (&$failed): void {
+            if (! $failed && str_starts_with($sql, 'insert into `operation_history`')) {
+                $failed = true;
+                throw new RuntimeException('Detach history failed');
+            }
+        });
+        $input = ['command_key' => (string) Str::uuid(), 'expected_report_version' => 1, 'reason' => 'Salah dokumen'];
+        try {
+            $service->detach($actor, $wo->id, $report->id, $photo->id, $input);
+            $this->fail('Detach must be atomic.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Detach history failed', $exception->getMessage());
+        }
+        $this->assertSame(1, $report->photos()->count());
+        $this->assertSame(1, $report->fresh()->lock_version);
+        $this->assertSame(2, $service->detach($actor, $wo->id, $report->id, $photo->id, $input)->lock_version);
+    }
+
+    public function test_http_detach_is_author_only_and_submitted_evidence_is_frozen(): void
+    {
+        Storage::fake('evidence');
+        [$actor, $wo, , $report] = $this->draft();
+        $upload = UploadedFile::fake()->image('wrong.jpg');
+        $service = app(ReportEvidenceService::class);
+        $file = $service->upload($actor, $wo->id, $report->id, $upload, $this->uploadPayload($upload));
+        $photo = $service->attach($actor, $wo->id, $report->id, ['command_key' => (string) Str::uuid(),
+            'expected_report_version' => 0, 'evidence_file_id' => $file->id, 'phase' => 'other']);
+        $other = User::factory()->create(['role' => 'teknisi']);
+        $wo->technicians()->attach($other, ['assigned_at' => now()]);
+        $input = ['command_key' => (string) Str::uuid(), 'expected_report_version' => 1, 'reason' => 'Salah dokumen'];
+        $url = route('work-orders.reports.evidence.destroy', [$wo, $report, $photo]);
+        $this->actingAs($other)->deleteJson($url, $input)->assertForbidden();
+        $report->forceFill(['review_status' => 'submitted', 'submitted_at' => now()])->save();
+        $this->actingAs($actor)->deleteJson($url, $input)->assertConflict();
+        $this->assertSame(1, $report->photos()->count());
+        Storage::disk('evidence')->assertExists($file->storage_key);
+    }
+
+    public function test_revision_can_drop_a_copied_wrong_attachment_without_changing_the_submitted_predecessor(): void
+    {
+        Storage::fake('evidence');
+        [$actor, $wo, , $report] = $this->draft();
+        $upload = UploadedFile::fake()->image('wrong.jpg');
+        $service = app(ReportEvidenceService::class);
+        $file = $service->upload($actor, $wo->id, $report->id, $upload, $this->uploadPayload($upload));
+        $service->attach($actor, $wo->id, $report->id, ['command_key' => (string) Str::uuid(), 'expected_report_version' => 0, 'evidence_file_id' => $file->id, 'phase' => 'other']);
+        $report->refresh()->forceFill(['diagnosis' => 'Kabel', 'action_taken' => 'Pasang', 'result' => 'Normal',
+            'checklist_snapshot' => [['code' => 'feed', 'label' => 'Live feed', 'outcome' => 'pass']]])->save();
+        $workflow = app(ServiceReportWorkflowService::class);
+        $command = fn ($revision): array => ['command_key' => (string) Str::uuid(), 'expected_report_version' => $revision->lock_version, 'expected_work_order_version' => $wo->fresh()->lock_version];
+        $report = $workflow->submit($actor, $wo->id, $report->id, $command($report));
+        $coordinator = User::factory()->create(['role' => 'koordinator']);
+        $report = $workflow->review($coordinator, $wo->id, $report->id, [...$command($report), 'decision' => 'needs_revision', 'category' => 'document_fix', 'reason' => 'Lampiran keliru']);
+        $next = $workflow->revise($actor, $wo->id, $report->id, $command($report));
+        $copy = $next->photos()->sole();
+        $service->detach($actor, $wo->id, $next->id, $copy->id, ['command_key' => (string) Str::uuid(), 'expected_report_version' => 0, 'reason' => 'Ganti lampiran pada revisi ini']);
+        $this->assertSame(0, $next->photos()->count());
+        $this->assertSame(1, $report->photos()->count());
+        $this->assertSame($file->id, (int) $report->photos()->sole()->evidence_file_id);
+        $this->assertSame('needs_revision', $report->fresh()->review_status);
+        Storage::disk('evidence')->assertExists($file->storage_key);
     }
 
     private function uploadPayload(UploadedFile $file): array

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ReportCorrectionForm } from '@/components/report-correction-form';
 import { ReportCommandForm } from '@/components/report-command-form';
 import { ReportDraftForm } from '@/components/report-draft-form';
+import { ReportEvidenceDetachForm } from '@/components/report-evidence-detach-form';
 import { ReportEvidenceForm } from '@/components/report-evidence-form';
 import { ReportMaterialForm } from '@/components/report-material-form';
 import { ReportReviewForm } from '@/components/report-review-form';
@@ -41,6 +42,7 @@ export default function ReportShow({ workOrder, report, revisions, materials, as
             {report.photos.length === 0 ? <p role="status" className="text-sm text-muted-foreground">Belum ada evidence terlampir.</p> : <ul className="flex flex-col gap-3">{report.photos.map(photo => <li key={photo.id} className="rounded-md border border-border p-3 text-sm break-words">
                 {photo.download_url ? <a href={photo.download_url} className="underline underline-offset-4">Unduh {photo.name}</a> : <span>{photo.name}</span>}
                 <p className="mt-1 text-muted-foreground">{({ before: 'Sebelum', after: 'Sesudah', other: 'Lainnya' } as Record<string, string>)[photo.phase] ?? photo.phase}{photo.caption ? ` · ${photo.caption}` : ''}</p>
+                {photo.detach && <ReportEvidenceDetachForm action={photo.detach} reportVersion={report.lock_version} photoId={photo.id} refreshUrl={links.refresh} />}
             </li>)}</ul>}
         </section>
         {actions.update && <p className="text-sm text-muted-foreground">Simpan perubahan draft sebelum menambahkan evidence atau mencatat material.</p>}

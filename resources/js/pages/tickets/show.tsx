@@ -1,6 +1,8 @@
 import { Link, useForm } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
+import { TicketEvidenceForm } from '@/components/ticket-evidence-form';
+import { reportTime } from '@/lib/report';
 import { TicketLifecycleForm } from '@/components/ticket-lifecycle-form';
 import type { ReportAction } from '@/lib/report';
 import { FormField } from '@/components/form-field';
@@ -20,6 +22,8 @@ type Props = {
         authorization_ref: string | null;
         lock_version: number;
     };
+    attachments?: { id: number; purpose: string; name: string; attached_at: string; download_url: string | null }[];
+    evidenceAction?: ReportAction | null;
     lifecycleActions?: Record<string, ReportAction | null>;
     canonicalTickets?: { id: number; ticket_number: string }[];
     decisionNote?: string | null;
@@ -31,6 +35,7 @@ type Props = {
     commandKeys: { triage: string; approve: string };
     links: {
         index: string;
+        refresh?: string;
         triage: string | null;
         approve: string | null;
         createWorkOrder: string | null;
@@ -44,7 +49,7 @@ export default function ShowTicket(props: Props) {
     return <TicketDetails key={`${props.ticket.id}:${props.ticket.lock_version}`} {...props} />;
 }
 
-function TicketDetails({ ticket, sites, commandKeys, links, workOrders, lifecycleActions = {}, canonicalTickets = [], decisionNote }: Props) {
+function TicketDetails({ ticket, sites, commandKeys, links, workOrders, lifecycleActions = {}, canonicalTickets = [], decisionNote, attachments = [], evidenceAction }: Props) {
     const triage = useForm({
         command_key: commandKeys.triage,
         expected_ticket_version: ticket.lock_version,
@@ -71,6 +76,13 @@ function TicketDetails({ ticket, sites, commandKeys, links, workOrders, lifecycl
                 {decisionNote && <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">{decisionNote}</p>}
             </section>
 
+            <section className="panel flex flex-col gap-3"><h2 className="section-title">Lampiran ticket</h2>
+                {attachments.length ? <ul className="flex flex-col gap-3">{attachments.map(attachment => <li key={attachment.id} className="rounded-md border border-border p-3 text-sm break-words">
+                    {attachment.download_url ? <a className="underline" href={attachment.download_url}>Unduh {attachment.name}</a> : <span>{attachment.name}</span>}
+                    <p className="mt-1 text-muted-foreground">{({ complaint: 'Keluhan / permintaan', authorization: 'Otorisasi', resolution: 'Hasil penanganan' } as Record<string, string>)[attachment.purpose] ?? attachment.purpose} · {reportTime(attachment.attached_at)}</p>
+                </li>)}</ul> : <p role="status" className="text-sm text-muted-foreground">Belum ada lampiran ticket.</p>}
+            </section>
+            {evidenceAction && <TicketEvidenceForm action={evidenceAction} ticketVersion={ticket.lock_version} refreshUrl={links.refresh ?? links.index} />}
             {links.triage && (
                 <form
                     className="panel flex flex-col gap-4"
@@ -177,7 +189,7 @@ function TicketDetails({ ticket, sites, commandKeys, links, workOrders, lifecycl
                 {workOrders.map(workOrder => <p key={workOrder.id}>{workOrder.show_url ? <Link className="underline" href={workOrder.show_url}>{workOrder.wo_number}</Link> : workOrder.wo_number} · {workOrder.status}</p>)}
             </section>
             <Link href={links.index}>Kembali ke Ticket</Link>
-            {Object.entries(lifecycleActions).map(([kind, action]) => action && <TicketLifecycleForm key={kind} action={action} kind={kind} version={ticket.lock_version} canonicalTickets={canonicalTickets} refreshUrl={links.index} />)}
+            {Object.entries(lifecycleActions).map(([kind, action]) => action && <TicketLifecycleForm key={kind} action={action} kind={kind} version={ticket.lock_version} canonicalTickets={canonicalTickets} refreshUrl={links.refresh ?? links.index} />)}
         </div>
     );
 }

@@ -14,7 +14,7 @@ export type ReportRecord = {
     review_notes: string | null; lock_version: number; author: string; reviewer: string | null;
     submitted_at: string | null; reviewed_at: string | null; is_head: boolean; legacy: boolean;
     scope: { id: number; scope_no: number; description: string; acceptance_criteria: string } | null;
-    photos: { id: number; phase: string; caption: string | null; name: string; download_url: string | null }[];
+    photos: { id: number; phase: string; caption: string | null; name: string; download_url: string | null; detach?: ReportAction | null }[];
 };
 export type ReportShowProps = {
     workOrder: ReportWorkOrder; report: ReportRecord; revisions: ReportRevision[];

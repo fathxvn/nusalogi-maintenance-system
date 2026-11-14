@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportEvidenceController;
 use App\Http\Controllers\ServiceReportController;
 use App\Http\Controllers\ServiceTicketController;
+use App\Http\Controllers\TicketEvidenceController;
 use App\Http\Controllers\WorkOrderAssignmentController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\WorkOrderLifecycleController;
@@ -36,6 +37,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/tickets/create', [ServiceTicketController::class, 'create'])->middleware('role:admin')->name('tickets.create');
         Route::post('/tickets', [ServiceTicketController::class, 'store'])->middleware('role:admin')->name('tickets.store');
         Route::get('/tickets/{ticket}', [ServiceTicketController::class, 'show'])->name('tickets.show');
+        Route::post('/tickets/{ticket}/evidence', [TicketEvidenceController::class, 'store'])->name('tickets.evidence.store');
+        Route::get('/tickets/{ticket}/evidence/{attachment}', [TicketEvidenceController::class, 'show'])->whereNumber('attachment')->name('tickets.evidence.show');
         Route::post('/tickets/{ticket}/triage', [ServiceTicketController::class, 'triage'])->middleware('role:koordinator')->name('tickets.triage');
         Route::post('/tickets/{ticket}/approve', [ServiceTicketController::class, 'approve'])->middleware('role:koordinator')->name('tickets.approve');
         Route::post('/tickets/{ticket}/lifecycle/{action}', [ServiceTicketController::class, 'lifecycle'])->middleware('role:koordinator')->whereIn('action', ['resolve', 'wait_information', 'await_authorization', 'reject', 'cancel', 'duplicate'])->name('tickets.lifecycle');
@@ -86,6 +89,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:teknisi')->whereNumber('report')->name('work-orders.reports.evidence.store');
     Route::get('/work-orders/{workOrder}/reports/{report}/evidence/{photo}', [ReportEvidenceController::class, 'show'])
         ->middleware('role:admin,koordinator,teknisi')->whereNumber('report')->whereNumber('photo')->name('work-orders.reports.evidence.show');
+    Route::delete('/work-orders/{workOrder}/reports/{report}/evidence/{photo}', [ReportEvidenceController::class, 'destroy'])
+        ->middleware('role:teknisi')->whereNumber('report')->whereNumber('photo')->name('work-orders.reports.evidence.destroy');
 
     Route::middleware('role:koordinator')->group(function (): void {
         Route::get('/work-orders/{workOrder}/visits/create', [WorkVisitController::class, 'create'])->name('work-orders.visits.create');
