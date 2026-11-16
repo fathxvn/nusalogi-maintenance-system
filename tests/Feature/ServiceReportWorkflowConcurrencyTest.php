@@ -11,9 +11,12 @@ use App\Models\WorkOrderScopeItem;
 use App\Services\CreateWorkOrderService;
 use App\Services\ServiceReportDraftService;
 use App\Services\ServiceReportWorkflowService;
+use App\Services\VisitBookingExecutionService;
+use App\Services\VisitSchedulingService;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
@@ -83,6 +86,73 @@ class ServiceReportWorkflowConcurrencyTest extends TestCase
         $this->assertSame(1, $report->fresh()->lock_version);
         $this->assertSame(1, OperationHistory::query()->where('action', 'report.submit')->count());
         $this->assertSame(1, $wo->updates()->where('to_status', 'pending_review')->count());
+    }
+
+    public function test_technical_review_waits_for_running_booking_without_partial_decision(): void
+    {
+        [$tech, $reviewer, $wo, $report, $booking] = $this->reworkScenario();
+        $execution = app(VisitBookingExecutionService::class);
+        $execution->start($tech, $booking->id, ['command_key' => (string) Str::uuid(), 'expected_visit_version' => 1, 'expected_booking_status' => 'confirmed']);
+        $input = [...$this->payload($report->fresh()), 'decision' => 'needs_revision', 'category' => 'technical_rework', 'reason' => 'Perbaiki teknis'];
+        $before = OperationHistory::query()->count();
+        try {
+            app(ServiceReportWorkflowService::class)->review($reviewer, $wo->id, $report->id, $input);
+            $this->fail('Running booking must block technical review.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(['ACTIVE_BOOKING_BLOCKS_REWORK'], $exception->errors()['work_order_id']);
+        }
+        $this->assertSame('submitted', $report->fresh()->review_status);
+        $this->assertNull($report->fresh()->reviewed_at);
+        $this->assertNull($report->fresh()->reviewed_by);
+        $this->assertSame('in_progress', $wo->fresh()->status);
+        $this->assertDatabaseCount('operation_history', $before);
+        $execution->complete($tech, $booking->id, ['command_key' => (string) Str::uuid(), 'expected_visit_version' => 2, 'expected_booking_status' => 'in_progress']);
+        app(ServiceReportWorkflowService::class)->review($reviewer, $wo->id, $report->id, $input);
+        $this->assertSame('rework', $wo->fresh()->status);
+        $this->assertSame('completed', $booking->fresh()->status);
+    }
+
+    #[DataProvider('executionRaces')]
+    public function test_technical_review_racing_execution_never_strands_a_running_booking(string $action): void
+    {
+        [$tech, $reviewer, $wo, $report, $booking] = $this->reworkScenario();
+        if ($action === 'complete') {
+            app(VisitBookingExecutionService::class)->start($tech, $booking->id, ['command_key' => (string) Str::uuid(), 'expected_visit_version' => 1, 'expected_booking_status' => 'confirmed']);
+        }
+        $before = OperationHistory::query()->count();
+        $results = $this->race($wo, [
+            'review' => ['action' => 'review', 'actor_id' => $reviewer->id, 'report_id' => $report->id,
+                'payload' => [...$this->payload($report->fresh()), 'decision' => 'needs_revision', 'category' => 'technical_rework', 'reason' => 'Perbaiki teknis']],
+            'execution' => ['action' => 'booking.'.$action, 'actor_id' => $tech->id, 'booking_id' => $booking->id,
+                'payload' => ['command_key' => (string) Str::uuid(), 'expected_visit_version' => $action === 'start' ? 1 : 2, 'expected_booking_status' => $action === 'start' ? 'confirmed' : 'in_progress']],
+        ]);
+        $this->assertFalse($booking->fresh()->status === 'in_progress' && $wo->fresh()->status === 'rework');
+        $this->assertSame($results['review']['ok'] ? 'needs_revision' : 'submitted', $report->fresh()->review_status);
+        $this->assertSame($results['review']['ok'], $report->fresh()->reviewed_at !== null);
+        $this->assertSame($results['review']['ok'] ? 1 : 0, OperationHistory::query()->where('action', 'report.review')->count());
+        $this->assertDatabaseCount('operation_history', $before + count(array_filter($results, fn (array $result): bool => $result['ok'])));
+    }
+
+    public static function executionRaces(): array
+    {
+        return [['start'], ['complete']];
+    }
+
+    private function reworkScenario(): array
+    {
+        [$tech, $wo, $scope] = $this->context();
+        $scope->replicate()->forceFill(['scope_no' => 2, 'created_at' => now()])->save();
+        $report = app(ServiceReportDraftService::class)->createDraft($tech, $wo->id, $scope->id, [
+            'command_key' => (string) Str::uuid(), 'expected_work_order_version' => $wo->lock_version,
+            'diagnosis' => 'Kabel', 'action_taken' => 'Pasang', 'result' => 'Normal',
+            'checklist_snapshot' => [['code' => 'test', 'label' => 'Uji', 'outcome' => 'pass']]]);
+        $report = app(ServiceReportWorkflowService::class)->submit($tech, $wo->id, $report->id, $this->payload($report));
+        $reviewer = User::factory()->create(['role' => 'koordinator']);
+        $visit = app(VisitSchedulingService::class)->createDraft($reviewer, $wo->id, ['command_key' => (string) Str::uuid(),
+            'starts_at' => '2026-11-20T09:00+07:00', 'ends_at' => '2026-11-20T11:00+07:00', 'zone_name' => 'Asia/Jakarta']);
+        app(VisitSchedulingService::class)->confirm($reviewer, $visit->id, ['command_key' => (string) Str::uuid(), 'expected_visit_version' => 0, 'technician_ids' => [$tech->id]]);
+
+        return [$tech, $reviewer, $wo->fresh(), $report, $visit->bookings()->sole()];
     }
 
     public static function operations(): array

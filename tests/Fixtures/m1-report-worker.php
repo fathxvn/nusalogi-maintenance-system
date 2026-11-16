@@ -8,6 +8,7 @@ use App\Services\ReportCorrectionService;
 use App\Services\ServiceReportDraftService;
 use App\Services\ServiceReportWorkflowService;
 use App\Services\ServiceTicketLifecycleService;
+use App\Services\VisitBookingExecutionService;
 use App\Services\WorkOrderLifecycleService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\QueryException;
@@ -77,7 +78,7 @@ try {
 
     $action = $input['action'] ?? 'create';
 
-    if (! in_array($action, ['create', 'update', 'material', 'submit', 'review', 'revise', 'bast.issue', 'bast.decide', 'bast.cancel', 'correction', 'wo.close', 'scope.append', 'ticket.duplicate'], true)) {
+    if (! in_array($action, ['create', 'update', 'material', 'submit', 'review', 'revise', 'bast.issue', 'bast.decide', 'bast.cancel', 'correction', 'wo.close', 'scope.append', 'ticket.duplicate', 'booking.start', 'booking.complete'], true)) {
         throw new RuntimeException('Unsupported concurrency action.');
     }
 
@@ -164,7 +165,10 @@ try {
 
     $actor = User::query()->findOrFail($input['actor_id']);
 
-    if ($action === 'wo.close') {
+    if (str_starts_with($action, 'booking.')) {
+        $method = substr($action, 8);
+        $report = $app->make(VisitBookingExecutionService::class)->{$method}($actor, (int) $input['booking_id'], $input['payload']);
+    } elseif ($action === 'wo.close') {
         $report = $app->make(WorkOrderLifecycleService::class)->close($actor, (int) $input['work_order_id'], $input['payload']);
     } elseif ($action === 'ticket.duplicate') {
         $report = $app->make(ServiceTicketLifecycleService::class)->change($actor, (int) $input['ticket_id'], 'duplicate', $input['payload']);

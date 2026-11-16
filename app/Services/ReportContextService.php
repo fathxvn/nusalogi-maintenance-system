@@ -68,9 +68,9 @@ class ReportContextService
     /** @param list<int> $resources
      * @return array{workOrder: WorkOrder, scopes: Collection<int, WorkOrderScopeItem>, bookings: Collection<int, VisitBooking>}
      */
-    public function lockExecutionRoots(User $actor, int $workOrderId, ?int $reportId, array $resources): array
+    public function lockExecutionRoots(User $actor, int $workOrderId, ?int $reportId, array $resources, bool $authorOnly = true): array
     {
-        $context = $this->lockRoots($actor, $workOrderId, $reportId);
+        $context = $this->lockRoots($actor, $workOrderId, $reportId, $authorOnly);
         if (! $actor->hasRole('teknisi')) {
             $this->commands->authorize($actor, ['koordinator'], true);
         }

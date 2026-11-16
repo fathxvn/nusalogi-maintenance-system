@@ -146,3 +146,9 @@ Local implementation commits:
 6. `b8c05c0` — private ticket attachments and draft evidence correction.
 
 Final checkpoint documentation is committed separately after these results. Remaining work is the browser checklist, staging F01/F03 and explicit company authority/retention gates described above. No independent requested coding work is intentionally deferred to those gates. M1 remains partially accepted pending that QA and those decisions, rather than being declared fully complete. Working tree is expected clean after the checkpoint commit. No push, PR, merge or deploy.
+
+## Review follow-up — 16 November 2026
+
+Clean starting worktree at fdc1fed. All three findings reproduced before fixes: technical QA accepted while a booking ran; a stale coordinator object bypassed material membership; dashboard counted 3 rather than 7 active statuses. New frontend label test failed for on_hold. The initial test run hit MySQL 1419 before assertions; restored local container log_bin_trust_function_creators support and reran. No application migration/reset/data change.
+
+P1 fixed: review uses WO/scopes/coordinator/sorted resources/visits/bookings locks, with explicit authorOnly=false for coordinator review. Technical rework checks running bookings before any decision write. Approved/document_fix contracts remain covered. New two-scope test asserts atomic rejection and successful retry after completion. Independent-process start/review and complete/review races use existing prior-snapshot/NOWAIT contention harness and assert no running booking with rework or partial history. Compose workflow + concurrency: **16 passed / 234 assertions**, 236.08s. Browser QA remains pending.

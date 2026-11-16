@@ -91,9 +91,10 @@ class ServiceReportWorkflowService
             'category' => ['nullable', 'required_if:decision,needs_revision', Rule::in(['document_fix', 'technical_rework'])],
             'reason' => ['nullable', 'required_if:decision,needs_revision', 'string', 'max:10000'],
         ]);
+        $resources = $this->context->discoverResources($workOrderId, $actor);
         $history = $this->commands->run($actor, $data['command_key'], 'report.review', [
             'work_order_id' => $workOrderId, 'report_id' => $reportId, 'input' => $data,
-        ], ['koordinator'], fn (): array => $this->context->lockRoots($actor, $workOrderId, $reportId, false),
+        ], ['koordinator'], fn (): array => $this->context->lockExecutionRoots($actor, $workOrderId, $reportId, $resources, false),
             function (array $context, User $current) use ($reportId, $data): array {
                 $wo = $context['workOrder'];
                 $this->expectedWorkOrder($wo, $data);
@@ -105,6 +106,9 @@ class ServiceReportWorkflowService
                 }
                 if ((int) $report->created_by === (int) $current->id) {
                     throw new AuthorizationException('Reviewer tidak boleh menyetujui atau mereview laporannya sendiri.');
+                }
+                if ($data['decision'] === 'needs_revision' && $data['category'] === 'technical_rework' && $context['bookings']->contains('status', 'in_progress')) {
+                    $this->commands->conflict('work_order_id', 'ACTIVE_BOOKING_BLOCKS_REWORK');
                 }
                 $report->forceFill(['review_status' => $data['decision'], 'reviewed_by' => $current->id,
                     'reviewed_at' => now(), 'review_notes' => $data['reason'] ?? null, 'lock_version' => $report->lock_version + 1])->save();
