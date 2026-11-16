@@ -15,6 +15,12 @@ export const workOrderLabels: Record<string, string> = {
     pending: 'Menunggu',
     assigned: 'Ditugaskan',
     in_progress: 'Dikerjakan',
+    on_hold: 'Ditahan',
+    pending_review: 'Menunggu review',
+    rework: 'Perlu perbaikan',
+    awaiting_acceptance: 'Menunggu penerimaan',
+    closed: 'Ditutup',
+    cancelled: 'Dibatalkan',
 };
 export const priorityLabels: Record<string, string> = {
     high: 'Tinggi',
@@ -30,11 +36,11 @@ export function dateLabel(value: string | null): string {
     }).format(new Date(value.includes('T') ? value : `${value}T12:00:00`));
 }
 export function statusClass(status: string): string {
-    if (status === 'in_progress')
+    if (['in_progress', 'closed'].includes(status))
         return 'bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-200';
-    if (status === 'assigned')
+    if (['assigned', 'pending_review', 'awaiting_acceptance'].includes(status))
         return 'bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-200';
-    if (status === 'pending')
+    if (['pending', 'on_hold', 'rework'].includes(status))
         return 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200';
     return 'bg-muted text-muted-foreground';
 }

@@ -51,7 +51,7 @@ class DashboardSummary
 
         return [
             'metrics' => [
-                'active' => (clone $workOrders)->whereIn('status', ['pending', 'assigned', 'in_progress'])->count(),
+                'active' => (clone $workOrders)->whereIn('status', ['pending', 'assigned', 'in_progress', 'on_hold', 'pending_review', 'rework', 'awaiting_acceptance'])->count(),
                 'today' => (clone $workOrders)->whereDate('scheduled_at', today())->count(),
                 'customers' => (clone $workOrders)->join('customer_sites', 'customer_sites.id', '=', 'work_orders.customer_site_id')
                     ->distinct()->count('customer_sites.customer_id'),

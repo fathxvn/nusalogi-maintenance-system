@@ -19,6 +19,26 @@ class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_all_m1_nonterminal_statuses_are_active_and_technicians_only_count_membership(): void
+    {
+        $creator = User::factory()->create(['role' => 'koordinator']);
+        $tech = User::factory()->create(['role' => 'teknisi']);
+        $expectedActive = 0;
+        foreach (['pending', 'assigned', 'in_progress', 'on_hold', 'pending_review', 'rework', 'awaiting_acceptance', 'closed', 'cancelled'] as $status) {
+            $wo = $this->workOrder($creator, ['status' => $status]);
+            $wo->technicians()->attach($tech);
+            if (! in_array($status, ['closed', 'cancelled'], true)) {
+                $expectedActive++;
+            }
+            $this->assertSame($expectedActive, app(DashboardSummary::class)->forUser($tech)['metrics']['active']);
+            $this->assertSame(1,
+                collect(app(DashboardSummary::class)->forUser($tech)['statuses'])->firstWhere('status', $status)['total']);
+        }
+        $this->workOrder($creator, ['status' => 'rework']);
+        $this->assertSame(7, app(DashboardSummary::class)->forUser($tech)['metrics']['active']);
+        $this->assertSame(8, app(DashboardSummary::class)->forUser($creator)['metrics']['active']);
+    }
+
     public function test_empty_dashboard_has_real_zero_counts_and_six_empty_months(): void
     {
         $user = User::factory()->create(['is_active' => true, 'role' => 'teknisi']);
