@@ -12,6 +12,7 @@ use App\Models\WorkOrderScopeItem;
 use App\Services\CreateWorkOrderService;
 use App\Services\MaterialUsageService;
 use App\Services\ServiceReportDraftService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +52,26 @@ class MaterialUsageTest extends TestCase
         ])), 'MATERIAL_RETURN_EXCEEDS_USAGE');
         $this->assertSame('in_progress', $wo->fresh()->status);
         $this->assertSame(3, $report->fresh()->lock_version);
+    }
+
+    public function test_stale_coordinator_object_cannot_bypass_membership_even_on_replay(): void
+    {
+        [$member, $wo, , $report] = $this->draft();
+        $actor = User::factory()->create(['role' => 'koordinator']);
+        User::query()->whereKey($actor->id)->update(['role' => 'teknisi']);
+        $input = $this->input($report);
+        $service = app(MaterialUsageService::class);
+        try {
+            $service->record($actor, $wo->id, $report->id, $input);
+            $this->fail('Stale actor must not bypass membership.');
+        } catch (AuthorizationException) {
+            $this->assertDatabaseCount('material_usages', 0);
+        }
+        $wo->technicians()->attach($actor, ['assigned_at' => now()]);
+        $usage = $service->record($actor, $wo->id, $report->id, $input);
+        $wo->technicians()->detach($actor);
+        $this->expectException(AuthorizationException::class);
+        $service->record($actor, $wo->id, $report->id, $input);
     }
 
     #[DataProvider('invalidQuantities')]

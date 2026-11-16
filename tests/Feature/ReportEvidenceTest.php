@@ -13,6 +13,7 @@ use App\Services\ReportEvidenceService;
 use App\Services\ServiceReportDraftService;
 use App\Services\ServiceReportWorkflowService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -251,6 +252,32 @@ class ReportEvidenceTest extends TestCase
         $this->assertSame($file->id, (int) $report->photos()->sole()->evidence_file_id);
         $this->assertSame('needs_revision', $report->fresh()->review_status);
         Storage::disk('evidence')->assertExists($file->storage_key);
+    }
+
+    public function test_stale_coordinator_object_without_membership_cannot_upload_or_submit_as_technician(): void
+    {
+        Storage::fake('evidence');
+        [$actor, $wo, , $report] = $this->draft();
+        $actor->forceFill(['role' => 'koordinator'])->save();
+        User::query()->whereKey($actor->id)->update(['role' => 'teknisi']);
+        $wo->technicians()->detach($actor);
+        $upload = UploadedFile::fake()->image('proof.jpg');
+        foreach (['upload', 'submit'] as $operation) {
+            try {
+                if ($operation === 'upload') {
+                    app(ReportEvidenceService::class)->upload($actor, $wo->id, $report->id, $upload, $this->uploadPayload($upload));
+                } else {
+                    app(ServiceReportWorkflowService::class)->submit($actor, $wo->id, $report->id, [
+                        'command_key' => (string) Str::uuid(), 'expected_report_version' => 0, 'expected_work_order_version' => $wo->lock_version]);
+                }
+                $this->fail('Stale role must not bypass membership for '.$operation);
+            } catch (AuthorizationException|ModelNotFoundException $exception) {
+                $this->assertInstanceOf($operation === 'upload' ? AuthorizationException::class : ModelNotFoundException::class, $exception);
+                $this->assertSame('draft', $report->fresh()->review_status);
+                $this->assertSame(0, $report->photos()->count());
+            }
+        }
+        $this->assertDatabaseCount('private_evidence_files', 0);
     }
 
     private function uploadPayload(UploadedFile $file): array

@@ -39,7 +39,7 @@ class WorkOrderLifecycleService
         $resources = $this->reports->discoverResources($workOrderId, $actor);
         $history = $this->commands->run($actor, $data['command_key'], 'work_order.'.$action,
             ['work_order_id' => $workOrderId, 'input' => $data], $roles,
-            fn (): array => $this->reports->lockExecutionRoots($actor, $workOrderId, null, $resources),
+            fn (): array => $this->reports->lockExecutionRoots($actor, $workOrderId, null, $resources, true, $actor->hasRole('teknisi')),
             function (array $context, User $current) use ($data, $action): array {
                 $wo = $context['workOrder'];
                 $this->reports->assertBaseline($wo, $context['scopes']);

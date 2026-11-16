@@ -94,7 +94,7 @@ class ServiceReportWorkflowService
         $resources = $this->context->discoverResources($workOrderId, $actor);
         $history = $this->commands->run($actor, $data['command_key'], 'report.review', [
             'work_order_id' => $workOrderId, 'report_id' => $reportId, 'input' => $data,
-        ], ['koordinator'], fn (): array => $this->context->lockExecutionRoots($actor, $workOrderId, $reportId, $resources, false),
+        ], ['koordinator'], fn (): array => $this->context->lockExecutionRoots($actor, $workOrderId, $reportId, $resources, false, false),
             function (array $context, User $current) use ($reportId, $data): array {
                 $wo = $context['workOrder'];
                 $this->expectedWorkOrder($wo, $data);

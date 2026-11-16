@@ -27,10 +27,10 @@ class ReportContextService
     }
 
     /** @return array{workOrder: WorkOrder, scopes: Collection<int, WorkOrderScopeItem>} */
-    public function lockRoots(User $actor, int $workOrderId, ?int $reportId = null, bool $authorOnly = true): array
+    public function lockRoots(User $actor, int $workOrderId, ?int $reportId = null, bool $authorOnly = true, bool $requireMembership = true): array
     {
         $workOrder = WorkOrder::query()->lockForUpdate()->findOrFail($workOrderId);
-        if ($actor->hasRole('teknisi') && DB::table('work_order_technicians')->where('work_order_id', $workOrder->id)->where('user_id', $actor->id)->lockForUpdate()->first() === null) {
+        if ($requireMembership && DB::table('work_order_technicians')->where('work_order_id', $workOrder->id)->where('user_id', $actor->id)->lockForUpdate()->first() === null) {
             throw new AuthorizationException('Hanya teknisi anggota WO yang boleh mengubah hasil pekerjaan.');
         }
         $scopes = $workOrder->scopeItems()->orderBy('id')->lockForUpdate()->get();
@@ -39,6 +39,10 @@ class ReportContextService
             if ($authorOnly && (int) $report->created_by !== (int) $actor->id) {
                 throw new AuthorizationException('Hanya penulis laporan yang boleh mengubah revisi ini.');
             }
+        }
+
+        if (! $requireMembership) {
+            $this->commands->authorize($actor, ['koordinator'], true);
         }
 
         return compact('workOrder', 'scopes');
@@ -68,12 +72,9 @@ class ReportContextService
     /** @param list<int> $resources
      * @return array{workOrder: WorkOrder, scopes: Collection<int, WorkOrderScopeItem>, bookings: Collection<int, VisitBooking>}
      */
-    public function lockExecutionRoots(User $actor, int $workOrderId, ?int $reportId, array $resources, bool $authorOnly = true): array
+    public function lockExecutionRoots(User $actor, int $workOrderId, ?int $reportId, array $resources, bool $authorOnly = true, bool $requireMembership = true): array
     {
-        $context = $this->lockRoots($actor, $workOrderId, $reportId, $authorOnly);
-        if (! $actor->hasRole('teknisi')) {
-            $this->commands->authorize($actor, ['koordinator'], true);
-        }
+        $context = $this->lockRoots($actor, $workOrderId, $reportId, $authorOnly, $requireMembership);
         User::query()->whereIn('id', $resources)->orderBy('id')->lockForUpdate()->get();
         $visits = $context['workOrder']->visits()->orderBy('id')->lockForUpdate()->get();
         $bookings = VisitBooking::query()->whereIn('visit_id', $visits->modelKeys())->orderBy('id')->lockForUpdate()->get();
