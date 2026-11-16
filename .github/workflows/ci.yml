@@ -95,4 +95,4 @@ jobs:
         run: ./vendor/bin/pint --test
 
       - name: Laravel tests
-        run: php artisan test --compact
+        run: php artisan test --compact --stop-on-failure
