@@ -126,6 +126,7 @@ class ServiceReportWorkflowConcurrencyTest extends TestCase
             'execution' => ['action' => 'booking.'.$action, 'actor_id' => $tech->id, 'booking_id' => $booking->id,
                 'payload' => ['command_key' => (string) Str::uuid(), 'expected_visit_version' => $action === 'start' ? 1 : 2, 'expected_booking_status' => $action === 'start' ? 'confirmed' : 'in_progress']],
         ]);
+        $this->assertTrue($results['execution']['ok']);
         $this->assertFalse($booking->fresh()->status === 'in_progress' && $wo->fresh()->status === 'rework');
         $this->assertSame($results['review']['ok'] ? 'needs_revision' : 'submitted', $report->fresh()->review_status);
         $this->assertSame($results['review']['ok'], $report->fresh()->reviewed_at !== null);
