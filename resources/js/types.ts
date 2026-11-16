@@ -159,6 +159,11 @@ export type BookingRecord = {
     ended_reason: string | null;
     cancel_url: string | null;
     command_key: string | null;
+    actual_start_at: string | null;
+    actual_end_at: string | null;
+    execution_action: 'start' | 'complete' | null;
+    execution_url: string | null;
+    execution_command_key: string | null;
 };
 
 export type VisitRecord = {

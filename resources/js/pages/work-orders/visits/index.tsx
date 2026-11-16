@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { VisitBookingCancelAction } from '@/components/visit-booking-cancel-action';
+import { VisitBookingExecutionAction } from '@/components/visit-booking-execution-action';
 import { VisitConfirmForm } from '@/components/visit-confirm-form';
 import { VisitFormErrors } from '@/components/visit-form-errors';
 import { VisitRescheduleAction } from '@/components/visit-reschedule-action';
@@ -64,9 +65,12 @@ export default function VisitIndex({ workOrder, members, technicians, visits, un
                                         <div className="min-w-0 flex-1 break-words text-sm">
                                             <p className="font-medium">{booking.technician_name}</p>
                                             <p className="text-xs text-muted-foreground">{visitStatusLabels[booking.status] ?? booking.status}</p>
+                                            {booking.actual_start_at && <p className="mt-1 text-xs text-muted-foreground">Mulai aktual: {visitDateLabel(booking.actual_start_at, visit.zone_name)}</p>}
+                                            {booking.actual_end_at && <p className="mt-1 text-xs text-muted-foreground">Selesai aktual: {visitDateLabel(booking.actual_end_at, visit.zone_name)}</p>}
                                             {booking.ended_reason && <p className="mt-1 whitespace-pre-wrap">Alasan: {booking.ended_reason}</p>}
                                         </div>
                                         {booking.cancel_url && booking.command_key && <VisitBookingCancelAction key={`${booking.id}:${visit.lock_version}`} booking={booking} visitVersion={visit.lock_version} refreshUrl={links.refresh} />}
+                                        {booking.execution_action && booking.execution_url && booking.execution_command_key && <VisitBookingExecutionAction key={`execution:${booking.id}:${booking.execution_action}`} booking={booking} visitVersion={visit.lock_version} refreshUrl={links.refresh} />}
                                     </li>
                                 ))}
                             </ul>

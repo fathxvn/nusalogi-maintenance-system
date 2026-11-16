@@ -6,10 +6,15 @@ use App\Http\Controllers\Admin\CustomerSiteController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleOAuthController;
+use App\Http\Controllers\BastController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportEvidenceController;
+use App\Http\Controllers\ServiceReportController;
 use App\Http\Controllers\ServiceTicketController;
+use App\Http\Controllers\TicketEvidenceController;
 use App\Http\Controllers\WorkOrderAssignmentController;
 use App\Http\Controllers\WorkOrderController;
+use App\Http\Controllers\WorkOrderLifecycleController;
 use App\Http\Controllers\WorkVisitController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -32,8 +37,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/tickets/create', [ServiceTicketController::class, 'create'])->middleware('role:admin')->name('tickets.create');
         Route::post('/tickets', [ServiceTicketController::class, 'store'])->middleware('role:admin')->name('tickets.store');
         Route::get('/tickets/{ticket}', [ServiceTicketController::class, 'show'])->name('tickets.show');
+        Route::post('/tickets/{ticket}/evidence', [TicketEvidenceController::class, 'store'])->name('tickets.evidence.store');
+        Route::get('/tickets/{ticket}/evidence/{attachment}', [TicketEvidenceController::class, 'show'])->whereNumber('attachment')->name('tickets.evidence.show');
         Route::post('/tickets/{ticket}/triage', [ServiceTicketController::class, 'triage'])->middleware('role:koordinator')->name('tickets.triage');
         Route::post('/tickets/{ticket}/approve', [ServiceTicketController::class, 'approve'])->middleware('role:koordinator')->name('tickets.approve');
+        Route::post('/tickets/{ticket}/lifecycle/{action}', [ServiceTicketController::class, 'lifecycle'])->middleware('role:koordinator')->whereIn('action', ['resolve', 'wait_information', 'await_authorization', 'reject', 'cancel', 'duplicate'])->name('tickets.lifecycle');
     });
     Route::get('/dashboard', DashboardController::class)
         ->middleware('role:admin,koordinator,teknisi')
@@ -45,6 +53,44 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/work-orders/{workOrder}/visits', [WorkVisitController::class, 'index'])
         ->middleware('role:admin,koordinator,teknisi')->name('work-orders.visits.index');
+
+    Route::get('/work-orders/{workOrder}/lifecycle', [WorkOrderLifecycleController::class, 'show'])->middleware('role:admin,koordinator,teknisi')->name('work-orders.lifecycle.show');
+    Route::post('/work-orders/{workOrder}/lifecycle/close', [WorkOrderLifecycleController::class, 'close'])->middleware('role:koordinator')->name('work-orders.lifecycle.close');
+    Route::post('/work-orders/{workOrder}/lifecycle/{action}', [WorkOrderLifecycleController::class, 'change'])->middleware('role:koordinator,teknisi')->whereIn('action', ['hold', 'resume', 'cancel', 'context'])->name('work-orders.lifecycle.change');
+
+    Route::get('/work-orders/{workOrder}/acceptance', [BastController::class, 'index'])->middleware('role:admin,koordinator,teknisi')->name('work-orders.acceptance.index');
+    Route::get('/bast/{version}', [BastController::class, 'show'])->middleware('role:admin,koordinator,teknisi')->whereNumber('version')->name('bast.show');
+    Route::get('/bast/{version}/files/{purpose}', [BastController::class, 'download'])->middleware('role:admin,koordinator,teknisi')->whereNumber('version')->name('bast.download');
+    Route::middleware('role:koordinator')->group(function (): void {
+        Route::post('/work-orders/{workOrder}/acceptance', [BastController::class, 'store'])->name('work-orders.acceptance.store');
+        Route::patch('/bast/{version}', [BastController::class, 'update'])->whereNumber('version')->name('bast.update');
+        Route::post('/bast/{version}/issue', [BastController::class, 'issue'])->whereNumber('version')->name('bast.issue');
+        Route::post('/bast/{version}/decide', [BastController::class, 'decide'])->whereNumber('version')->name('bast.decide');
+        Route::post('/bast/{version}/cancel', [BastController::class, 'cancel'])->whereNumber('version')->name('bast.cancel');
+        Route::post('/bast/{version}/revise', [BastController::class, 'revise'])->whereNumber('version')->name('bast.revise');
+        Route::post('/work-orders/{workOrder}/reports/{report}/correction', [ServiceReportController::class, 'correction'])->whereNumber('report')->name('work-orders.reports.correction');
+    });
+
+    Route::get('/work-orders/{workOrder}/reports', [ServiceReportController::class, 'index'])
+        ->middleware('role:admin,koordinator,teknisi')->name('work-orders.reports.index');
+    Route::get('/work-orders/{workOrder}/reports/{report}', [ServiceReportController::class, 'show'])
+        ->middleware('role:admin,koordinator,teknisi')->whereNumber('report')->name('work-orders.reports.show');
+    Route::middleware('role:teknisi')->group(function (): void {
+        Route::post('/work-orders/{workOrder}/scopes/{scope}/reports', [ServiceReportController::class, 'store'])->whereNumber('scope')->name('work-orders.reports.store');
+        Route::patch('/work-orders/{workOrder}/reports/{report}', [ServiceReportController::class, 'update'])->whereNumber('report')->name('work-orders.reports.update');
+        Route::post('/work-orders/{workOrder}/reports/{report}/submit', [ServiceReportController::class, 'submit'])->whereNumber('report')->name('work-orders.reports.submit');
+        Route::post('/work-orders/{workOrder}/reports/{report}/revise', [ServiceReportController::class, 'revise'])->whereNumber('report')->name('work-orders.reports.revise');
+        Route::post('/work-orders/{workOrder}/reports/{report}/materials', [ServiceReportController::class, 'material'])->whereNumber('report')->name('work-orders.reports.materials.store');
+    });
+    Route::post('/work-orders/{workOrder}/reports/{report}/review', [ServiceReportController::class, 'review'])
+        ->middleware('role:koordinator')->whereNumber('report')->name('work-orders.reports.review');
+
+    Route::post('/work-orders/{workOrder}/reports/{report}/evidence', [ReportEvidenceController::class, 'store'])
+        ->middleware('role:teknisi')->whereNumber('report')->name('work-orders.reports.evidence.store');
+    Route::get('/work-orders/{workOrder}/reports/{report}/evidence/{photo}', [ReportEvidenceController::class, 'show'])
+        ->middleware('role:admin,koordinator,teknisi')->whereNumber('report')->whereNumber('photo')->name('work-orders.reports.evidence.show');
+    Route::delete('/work-orders/{workOrder}/reports/{report}/evidence/{photo}', [ReportEvidenceController::class, 'destroy'])
+        ->middleware('role:teknisi')->whereNumber('report')->whereNumber('photo')->name('work-orders.reports.evidence.destroy');
 
     Route::middleware('role:koordinator')->group(function (): void {
         Route::get('/work-orders/{workOrder}/visits/create', [WorkVisitController::class, 'create'])->name('work-orders.visits.create');
@@ -68,6 +114,24 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
         Route::post('/work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
+    });
+
+    Route::middleware('role:teknisi')->group(function (): void {
+        Route::post(
+            '/work-orders/{workOrder}/visits/{visit}/bookings/{booking}/start',
+            [WorkVisitController::class, 'start'],
+        )
+            ->whereNumber('visit')
+            ->whereNumber('booking')
+            ->name('work-orders.visits.bookings.start');
+
+        Route::post(
+            '/work-orders/{workOrder}/visits/{visit}/bookings/{booking}/complete',
+            [WorkVisitController::class, 'complete'],
+        )
+            ->whereNumber('visit')
+            ->whereNumber('booking')
+            ->name('work-orders.visits.bookings.complete');
     });
 
     Route::get('/migration-test', function (Request $request) {

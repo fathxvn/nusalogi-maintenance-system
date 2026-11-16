@@ -30,6 +30,11 @@ class ServiceTicket extends Model
         return $this->hasMany(WorkOrder::class, 'ticket_id');
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TicketAttachment::class, 'ticket_id');
+    }
+
     public function site(): BelongsTo
     {
         return $this->belongsTo(CustomerSite::class, 'site_id');

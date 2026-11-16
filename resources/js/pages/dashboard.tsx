@@ -10,7 +10,7 @@ export default function Dashboard({ metrics, trend, statuses, recentWorkOrders }
         {
             label: 'Work Order Aktif',
             value: metrics.active,
-            detail: 'Menunggu, ditugaskan, dan dikerjakan',
+            detail: 'Seluruh pekerjaan yang belum ditutup atau dibatalkan',
             icon: ClipboardList,
         },
         {

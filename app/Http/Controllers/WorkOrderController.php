@@ -59,6 +59,9 @@ class WorkOrderController extends Controller
         return Inertia::render('work-orders/index', [
             'workOrders' => $workOrders,
             'links' => ['create' => $user->hasRole('koordinator') ? route('work-orders.create') : null],
+            'reportLinks' => $workOrders->getCollection()->mapWithKeys(fn (array $workOrder): array => [
+                $workOrder['id'] => route('work-orders.reports.index', $workOrder['id']),
+            ])->all(),
             'visitLinks' => $workOrders->getCollection()->mapWithKeys(fn (array $workOrder): array => [
                 $workOrder['id'] => route('work-orders.visits.index', $workOrder['id']),
             ])->all(),

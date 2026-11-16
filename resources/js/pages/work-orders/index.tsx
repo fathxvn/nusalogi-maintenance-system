@@ -24,10 +24,11 @@ type Props = {
     links: { create: string | null };
     assignmentLinks?: Record<number, string>;
     visitLinks?: Record<number, string>;
+    reportLinks?: Record<number, string>;
 };
 
-export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {}, visitLinks = {} }: Props) {
-    const hasActions = Object.keys(assignmentLinks).length > 0 || Object.keys(visitLinks).length > 0;
+export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {}, visitLinks = {}, reportLinks = {} }: Props) {
+    const hasActions = Object.keys(assignmentLinks).length > 0 || Object.keys(visitLinks).length > 0 || Object.keys(reportLinks).length > 0;
 
     return (
         <>
@@ -98,6 +99,7 @@ export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {}
                                                         Kunjungan
                                                     </Link>
                                                 )}
+                                                {reportLinks[wo.id] && <Link href={reportLinks[wo.id]} className={buttonVariants({ variant: 'outline' })} aria-label={`Laporan untuk ${wo.number}`}>Laporan</Link>}
                                                 {assignmentLinks[wo.id] && (
                                                     <Link
                                                         href={assignmentLinks[wo.id]}
@@ -107,7 +109,7 @@ export default function WorkOrderIndex({ workOrders, links, assignmentLinks = {}
                                                         Tugaskan Teknisi
                                                     </Link>
                                                 )}
-                                                {!visitLinks[wo.id] && !assignmentLinks[wo.id] && '—'}
+                                                {!visitLinks[wo.id] && !assignmentLinks[wo.id] && !reportLinks[wo.id] && '—'}
                                             </div>
                                         </td>
                                     )}

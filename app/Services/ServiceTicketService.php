@@ -97,6 +97,13 @@ class ServiceTicketService
             ];
         }
 
+        if ($action === 'approve') {
+            $rules += [
+                'coverage_disposition' => ['sometimes', Rule::in(['covered', 'authorized', 'no_charge'])],
+                'authorization_ref' => ['sometimes', 'nullable', 'string', 'max:180', 'encoding:UTF-8'],
+            ];
+        }
+
         $data = Validator::make($input, $rules)->validate();
         $key = strtolower($data['command_key']);
         unset($data['command_key']);
@@ -132,7 +139,7 @@ class ServiceTicketService
                     $this->commands->conflict('expected_ticket_version', 'TICKET_VERSION_CONFLICT');
                 }
 
-                $allowed = $action === 'approve' ? ['triaged'] : ['new', 'triaged', 'waiting_information'];
+                $allowed = $action === 'approve' ? ['triaged', 'awaiting_authorization'] : ['new', 'triaged', 'waiting_information'];
                 if (! in_array($ticket->status, $allowed, true)) {
                     $this->commands->conflict('ticket_id', 'TICKET_STATE_CONFLICT');
                 }
@@ -143,6 +150,14 @@ class ServiceTicketService
 
                 if ($context['assetId'] && ! $asset) {
                     throw ValidationException::withMessages(['primary_asset_id' => 'Asset ticket tidak tersedia.']);
+                }
+
+                if ($action === 'approve') {
+                    foreach (['coverage_disposition', 'authorization_ref'] as $field) {
+                        if (array_key_exists($field, $data)) {
+                            $ticket->{$field} = $data[$field];
+                        }
+                    }
                 }
 
                 if ($action === 'approve'
