@@ -1,4 +1,3 @@
-
 name: Nusalogi CI
 
 on:
@@ -55,6 +54,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Configure MySQL for test triggers
+        run: |
+          docker exec "${{ job.services.mysql.id }}" sh -c '
+            MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot \
+              -e "SET GLOBAL log_bin_trust_function_creators = 1;
+                  SELECT @@GLOBAL.log_bin_trust_function_creators AS enabled;"
+          '
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
